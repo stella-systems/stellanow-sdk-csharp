@@ -1,0 +1,54 @@
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+
+# .gitignore for .NET 6 on macOS
+
+# macOS-specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Visual Studio for Mac cache files
+*.userprefs
+*.usertasks
+
+# Build and binary output
+bin/
+obj/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet packages cache
+packages/
+
+# ReSharper, Rider cache files
+_ReSharper*/
+*resharper*
+*.DotSettings.user
+*.rider.user
