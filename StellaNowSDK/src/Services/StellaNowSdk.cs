@@ -1,5 +1,5 @@
-using StellaNowSDK.Interfaces;
-using StellaNowSDK.Models;
+using StellaNowSDK.ConnectionStrategies;
+using StellaNowSDK.Messages;
 using StellaNowSDK.Queue;
 
 namespace StellaNowSDK.Services;
@@ -11,10 +11,10 @@ public class StellaNowSdk
     
     public bool IsConnected => _connectionStrategy?.IsConnected ?? false;
     
-    public StellaNowSdk(IStellaNowConnectionStrategy connectionStrategy, MessageQueue messageQueue)
+    public StellaNowSdk(IStellaNowConnectionStrategy connectionStrategy, IMessageQueueStrategy messageQueueStrategy)
     {
         _connectionStrategy = connectionStrategy;
-        _messageQueueService = new StellaNowMessageQueueService(messageQueue, _connectionStrategy);
+        _messageQueueService = new StellaNowMessageQueueService(messageQueueStrategy, _connectionStrategy);
     }
 
     public async Task ConnectAsync()

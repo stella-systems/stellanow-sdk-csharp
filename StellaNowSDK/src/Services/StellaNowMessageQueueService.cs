@@ -1,19 +1,19 @@
-using StellaNowSDK.Interfaces;
-using StellaNowSDK.Models;
+using StellaNowSDK.ConnectionStrategies;
+using StellaNowSDK.Messages;
 using StellaNowSDK.Queue;
 
 namespace StellaNowSDK.Services;
 
 public class StellaNowMessageQueueService
 {
-    private readonly MessageQueue _messageQueue;
+    private readonly IMessageQueueStrategy _messageQueueStrategy;
     private readonly IStellaNowConnectionStrategy _connectionStrategy;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private Task? _queueProcessingTask;
 
-    public StellaNowMessageQueueService(MessageQueue messageQueue, IStellaNowConnectionStrategy connectionStrategy)
+    public StellaNowMessageQueueService(IMessageQueueStrategy messageQueueStrategy, IStellaNowConnectionStrategy connectionStrategy)
     {
-        _messageQueue = messageQueue;
+        _messageQueueStrategy = messageQueueStrategy;
         _connectionStrategy = connectionStrategy;
     }
 
@@ -24,7 +24,7 @@ public class StellaNowMessageQueueService
     
     public void EnqueueMessage(StellaNowMessageWrapper message)
     {
-        _messageQueue.Enqueue(message);
+        _messageQueueStrategy.Enqueue(message);
     }
 
     private async Task ProcessMessageQueueAsync()
@@ -33,9 +33,9 @@ public class StellaNowMessageQueueService
         {
             try
             {
-                if (_connectionStrategy.IsConnected && _messageQueue.TryDequeue(out var message))
+                if (_connectionStrategy.IsConnected && _messageQueueStrategy.TryDequeue(out var message))
                 {
-                    if (message != null) await _connectionStrategy.SendMessageAsync(message);
+                    await _connectionStrategy.SendMessageAsync(message);
                 }
                 else
                 {

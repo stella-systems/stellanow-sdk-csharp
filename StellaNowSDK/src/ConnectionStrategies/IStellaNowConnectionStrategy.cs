@@ -1,7 +1,7 @@
 using StellaNowSDK.Events;
-using StellaNowSDK.Models;
+using StellaNowSDK.Messages;
 
-namespace StellaNowSDK.Interfaces;
+namespace StellaNowSDK.ConnectionStrategies;
 
 public interface IStellaNowConnectionStrategy
 {
