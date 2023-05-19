@@ -7,20 +7,27 @@
 
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
-        <RootNamespace>MqttSdkTests</RootNamespace>
+        <RootNamespace>StellaNowSdkTests</RootNamespace>
+        <OutputType>Library</OutputType>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
         <PackageReference Include="MQTTnet" Version="4.2.0.706" />
-        <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
-        <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+        <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
+        <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
         <PackageReference Include="coverlet.collector" Version="3.2.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\StellaNowSDK\StellaNowSDK.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="src\ConnectionStrategies\" />
+      <Folder Include="src\Services\" />
+      <Folder Include="src\TestUtilities\" />
     </ItemGroup>
 
 </Project>
