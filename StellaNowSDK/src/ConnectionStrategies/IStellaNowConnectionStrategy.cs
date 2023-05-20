@@ -10,9 +10,9 @@ public interface IStellaNowConnectionStrategy
     
     bool IsConnected { get; }
     
-    Task ConnectAsync();
+    Task StartAsync();
 
-    Task DisconnectAsync();
+    Task StopAsync();
 
-    Task SendMessageAsync(StellaNowMessageWrapper message);
+    Task SendMessageAsync(StellaNowEventWrapper message);
 }

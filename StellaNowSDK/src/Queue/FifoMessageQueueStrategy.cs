@@ -5,14 +5,14 @@ namespace StellaNowSDK.Queue;
 
 public class FifoMessageQueueStrategy : IMessageQueueStrategy
 {
-    private readonly ConcurrentQueue<StellaNowMessageWrapper?> _queue = new ConcurrentQueue<StellaNowMessageWrapper?>();
+    private readonly ConcurrentQueue<StellaNowEventWrapper?> _queue = new ConcurrentQueue<StellaNowEventWrapper?>();
 
-    public void Enqueue(StellaNowMessageWrapper? message)
+    public void Enqueue(StellaNowEventWrapper? message)
     {
         _queue.Enqueue(message);
     }
 
-    public bool TryDequeue(out StellaNowMessageWrapper? message)
+    public bool TryDequeue(out StellaNowEventWrapper? message)
     {
         return _queue.TryDequeue(out message);
     }

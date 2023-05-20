@@ -22,7 +22,7 @@ public class StellaNowMessageQueueService
         _queueProcessingTask = Task.Run(ProcessMessageQueueAsync);
     }
     
-    public void EnqueueMessage(StellaNowMessageWrapper message)
+    public void EnqueueMessage(StellaNowEventWrapper message)
     {
         _messageQueueStrategy.Enqueue(message);
     }

@@ -14,7 +14,13 @@ public class StellaNowMessageWrapperTests
             Guid.NewGuid().ToString(),"John", "Doe", "1970-01-01", "john.doe@example.com"
         );
     
-        var serializedMessage = userUpdateMessage.ToString();
+        var serializedMessage = JsonConvert.SerializeObject(
+            userUpdateMessage,
+            new JsonSerializerSettings()
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            }
+        );
     
         var expectedFields = new List<Field>
         {

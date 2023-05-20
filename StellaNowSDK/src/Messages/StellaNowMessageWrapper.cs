@@ -6,6 +6,7 @@ namespace StellaNowSDK.Messages;
 public abstract class StellaNowMessageWrapper
 {
     public Metadata Metadata { get; }
+    
     public List<Field> Fields { get; }
     
     protected StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds)
@@ -25,16 +26,9 @@ public abstract class StellaNowMessageWrapper
     {
         Fields.Add(new Field(name, value));
     }
-    
-    public override string ToString()
+
+    public void SetDispatchTime()
     {
         Metadata.MessageProcessingDateUtc = DateTime.UtcNow;
-        
-        var settings = new JsonSerializerSettings()
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
-        
-        return Newtonsoft.Json.JsonConvert.SerializeObject(this, settings);
     }
 }

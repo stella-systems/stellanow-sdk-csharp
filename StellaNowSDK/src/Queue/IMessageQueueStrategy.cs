@@ -4,6 +4,6 @@ namespace StellaNowSDK.Queue;
 
 public interface IMessageQueueStrategy
 {
-    public abstract void Enqueue(StellaNowMessageWrapper? message);
-    public abstract bool TryDequeue(out StellaNowMessageWrapper? message);
+    public abstract void Enqueue(StellaNowEventWrapper? message);
+    public abstract bool TryDequeue(out StellaNowEventWrapper? message);
 }
