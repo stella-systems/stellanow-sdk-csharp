@@ -3,7 +3,7 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Queue;
 
-public class FifoMessageQueueStrategy : IMessageQueueStrategy
+public sealed class FifoMessageQueueStrategy : IMessageQueueStrategy
 {
     private readonly ConcurrentQueue<StellaNowEventWrapper?> _queue = new ConcurrentQueue<StellaNowEventWrapper?>();
 

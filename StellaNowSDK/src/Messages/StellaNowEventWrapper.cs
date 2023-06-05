@@ -3,7 +3,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace StellaNowSDK.Messages;
 
-public class StellaNowEventWrapper
+public sealed class StellaNowEventWrapper
 {
     public EventKey Key { get; set; }
     

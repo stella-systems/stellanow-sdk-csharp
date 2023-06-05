@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
@@ -7,16 +8,18 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.ConnectionStrategies;
 
-public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
+public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy, IDisposable
 {
+    private ILogger<StellaNowMqttWebSocketStrategy>? _logger;
+
     private readonly IMqttClient _mqttClient;
     
     private readonly string _brokerUrl;
     private readonly string _clientId;
     private readonly string _topic;
 
-    private readonly string? _username = "CsharpSdkTest";
-    private readonly string? _password = "password";
+    private readonly string? _username;
+    private readonly string? _password;
 
     private string? _token =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gR" +
@@ -29,8 +32,11 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
     
     private CancellationTokenSource? _reconnectCancellationTokenSource;
     
-    public StellaNowMqttWebSocketStrategy(string brokerUrl, string clientId, string username, string password, string topic)
+    public StellaNowMqttWebSocketStrategy(
+        ILogger<StellaNowMqttWebSocketStrategy>? logger,
+        string brokerUrl, string clientId, string username, string password, string topic)
     {
+        _logger = logger;
         _brokerUrl = brokerUrl;
         _clientId = clientId;
         _username = username;
@@ -44,16 +50,18 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
         _mqttClient.DisconnectedAsync += async (args) => await OnDisconnectedAsync(new StellaNowDisconnectedEventArgs());
     }
 
-    protected virtual async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
+    private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
     {
+        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Connected");
         if (ConnectedAsync is { } handler)
         {
             await handler(e);
         }
     }
 
-    protected virtual async Task OnDisconnectedAsync(StellaNowDisconnectedEventArgs e)
+    private async Task OnDisconnectedAsync(StellaNowDisconnectedEventArgs e)
     {
+        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Disconnected");
         if (DisconnectedAsync is { } handler)
         {
             await handler(e);
@@ -65,6 +73,8 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
         _ = Task.Run(
             async () =>
             {
+                _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Started Reconnection Monitor");
+                
                 while (true)
                 {
                     try
@@ -76,6 +86,7 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
                     }
                     catch
                     {
+                        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Reconnection Monitor: Unhandled Exception");
                         // Handle the exception properly (logging etc.).
                     }
                     finally
@@ -89,6 +100,10 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
 
     private async Task ConnectAsync()
     {
+        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Connecting");
+        
+        // TODO: call Keycloak
+        
         var options = new MqttClientOptionsBuilder()
             .WithClientId(_clientId)
             .WithWebSocketServer(_brokerUrl)
@@ -101,6 +116,8 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
 
     private async Task DisconnectAsync()
     {
+        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Disconnecting");
+        
         if(_reconnectCancellationTokenSource is { IsCancellationRequested: false })
         {
             _reconnectCancellationTokenSource.Cancel();
@@ -124,15 +141,23 @@ public class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy
 
     public async Task SendMessageAsync(StellaNowEventWrapper message)
     {
+        _logger?.LogDebug("StellaNowMqttWebSocketStrategy: Sending Message: " + message.Value.Metadata.MessageId);
         var messageString = message.GetForDispatch();
         var messageBytes = Encoding.UTF8.GetBytes(messageString);
         
         var mqttMessage = new MqttApplicationMessageBuilder()
             .WithTopic(_topic)
             .WithPayload(messageBytes)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
+            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
 
         await _mqttClient.PublishAsync(mqttMessage);
+    }
+    
+    public void Dispose()
+    {
+        _logger?.LogDebug("StellaNowMqttWebSocketStrategy: Disposing");
+        _reconnectCancellationTokenSource?.Cancel();
+        _reconnectCancellationTokenSource?.Dispose();
     }
 }

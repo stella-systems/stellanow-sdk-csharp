@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using StellaNowSDK.Services;
 using StellaNowSDKTests.Messages;
 
@@ -20,28 +21,42 @@ public class StellaNowSdkTests
         // Arrange
         var connectionStrategy = new Mock<IStellaNowConnectionStrategy>();
         var messageQueueStrategy = new FifoMessageQueueStrategy();
-
-        var sdk = new StellaNowSdk(connectionStrategy.Object, messageQueueStrategy, "myorg", "myproj");
-
+        
+        var mockSnsLogger = new Mock<ILogger<StellaNowSdk>>();
+        var mockMqLogger = new Mock<ILogger<StellaNowMessageQueue>>();
+        
+        var messageQueue = new StellaNowMessageQueue(
+            mockMqLogger.Object,
+            new FifoMessageQueueStrategy(),
+            connectionStrategy.Object
+            );
+        
+        var sdk = new StellaNowSdk(
+            mockSnsLogger.Object, 
+            connectionStrategy.Object, 
+            messageQueue, 
+            "myorg", 
+            "myproj");
+        
         var userUpdateMessage = new UserUpdateMessage("123", "John", "Doe", "1980-01-01", "john.doe@example.com");
-
+        
         // Enqueue the message
-        sdk.Send(userUpdateMessage);
-
+        sdk.SendMessage(userUpdateMessage);
+        
         // Manually dequeue and send the message
         if (messageQueueStrategy.TryDequeue(out var dequeuedMessage))
         {
             await connectionStrategy.Object.SendMessageAsync(dequeuedMessage);
         }
-
+        
         // Verify SendMessageAsync was called with the correct message
         connectionStrategy.Verify(s => s.SendMessageAsync(It.IsAny<StellaNowEventWrapper>()), Times.Once);
-
+        
         // Assert that the message was correctly serialized
         var message = JToken.Parse(dequeuedMessage.GetForDispatch());
         var actualMessageId = (string)message["value"]["metadata"]["messageId"];
         var actualFields = message["value"]["fields"].ToObject<List<Field>>();
-
+        
         var expectedFields = new List<Field>
         {
             new Field("firstName", "John"),
@@ -49,7 +64,7 @@ public class StellaNowSdkTests
             new Field("dob", "1980-01-01"),
             new Field("email", "john.doe@example.com")
         };
-
+        
         Assert.AreEqual(userUpdateMessage.Metadata.MessageId, actualMessageId);
         CollectionAssert.AreEquivalent(expectedFields, actualFields);
     }
