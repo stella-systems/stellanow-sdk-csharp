@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using StellaNowSDK.Config;
 using StellaNowSDK.ConnectionStrategies;
 using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
@@ -9,9 +10,8 @@ namespace StellaNowSDK.Services;
 public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
 {
     private readonly ILogger<IStellaNowSdk>? _logger;
-    
-    private readonly string _organizationId;
-    private readonly string _projectId;
+
+    private readonly StellaNowConfig _config;
     
     private readonly IStellaNowConnectionStrategy _connectionStrategy;
     private readonly IStellaNowMessageQueue _messageQueue;
@@ -25,12 +25,11 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         ILogger<StellaNowSdk>? logger,
         IStellaNowConnectionStrategy connectionStrategy, 
         IStellaNowMessageQueue messageQueue,
-        string organizationId, string projectId)
+        StellaNowConfig config)
     {
         _logger = logger;
         _connectionStrategy = connectionStrategy;
-        _organizationId = organizationId;
-        _projectId = projectId;
+        _config = config;
         _messageQueue = messageQueue;
         
         _connectionStrategy.ConnectedAsync += OnConnectedAsync;
@@ -39,13 +38,15 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
 
     public async Task StartAsync()
     {
-        _logger?.LogInformation("StellaNowSdk: Starting");
+        _logger?.LogInformation("Starting");
+        _messageQueue.StartProcessing();
         await _connectionStrategy.StartAsync();
     }
 
     public async Task StopAsync()
     {
-        _logger?.LogInformation("StellaNowSdk: Stopping");
+        _logger?.LogInformation("Stopping");
+        _messageQueue.StopProcessing();
         await _connectionStrategy.StopAsync();
     }
 
@@ -53,7 +54,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     {
         _messageQueue.EnqueueMessage(
             new StellaNowEventWrapper(
-                new EventKey(_organizationId, _projectId),
+                new EventKey(_config.OrganizationId, _config.ProjectId),
                 message)
         );
     }
@@ -76,7 +77,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     
     public void Dispose()
     {
-        _logger?.LogDebug("StellaNowSdk: Disposing");
+        _logger?.LogDebug("Disposing");
         _connectionStrategy.ConnectedAsync -= OnConnectedAsync;
         _connectionStrategy.DisconnectedAsync -= OnDisconnectedAsync;
     }

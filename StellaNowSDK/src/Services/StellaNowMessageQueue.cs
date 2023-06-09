@@ -27,18 +27,26 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
 
     public void StartProcessing()
     {
-        _queueProcessingTask = Task.Run(ProcessMessageQueueAsync);
+        if (_queueProcessingTask == null || _queueProcessingTask.IsCompleted)
+        {
+            _queueProcessingTask = Task.Run(ProcessMessageQueueAsync);
+        }
     }
     
+    public void StopProcessing()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
     public void EnqueueMessage(StellaNowEventWrapper message)
     {
-        _logger?.LogDebug("StellaNowMessageQueue: Queueing Message: " + message.Value.Metadata.MessageId);
+        _logger?.LogDebug("Queueing Message: {Message}", message.Value.Metadata.MessageId);
         _messageQueueStrategy.Enqueue(message);
     }
 
     private async Task ProcessMessageQueueAsync()
     {
-        _logger?.LogDebug("StellaNowMessageQueue: Start Processing Message Queue");
+        _logger?.LogDebug("Start Processing Message Queue");
         
         while (!_cancellationTokenSource.IsCancellationRequested)
         {
@@ -54,7 +62,10 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
                 // Try to send the current message
                 if (_currentMessage != null)
                 {
-                    _logger?.LogInformation("StellaNowMessageQueue: Start Processing");
+                    _logger?.LogInformation(
+                        "Attempting to send message: {Message}", 
+                        _currentMessage.Value.Metadata.MessageId);
+                    
                     await _connectionStrategy.SendMessageAsync(_currentMessage);
                     _currentMessage = null;  // Clear the current message after it was successfully sent
                 }
@@ -66,23 +77,24 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
             }
             catch (OperationCanceledException)
             {
-                _logger?.LogInformation("StellaNowMessageQueue:Thread Cancelled");
+                _logger?.LogInformation("Thread Cancelled");
                 // The CancellationTokenSource was cancelled, which means we should stop processing the queue
                 break;
             }
             catch
             {
-                _logger?.LogError("StellaNowMessageQueue: Unhandled Exception");
+                _logger?.LogError("Unhandled Exception");
                 // Handle any other exceptions that might occur during message processing
+                await Task.Delay(500);
             }
         }
         
-        _logger?.LogDebug("StellaNowMessageQueue: Ended Processing Message Queue");
+        _logger?.LogDebug("Ended Processing Message Queue");
     }
     
     public void Dispose()
     {
-        _logger?.LogDebug("StellaNowMessageQueue: Disposing");
+        _logger?.LogDebug("Disposing");
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }

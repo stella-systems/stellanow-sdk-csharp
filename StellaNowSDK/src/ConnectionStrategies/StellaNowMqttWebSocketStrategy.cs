@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
+using StellaNowSDK.Authentication;
+using StellaNowSDK.Config;
 using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
 
@@ -13,17 +15,13 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     private ILogger<StellaNowMqttWebSocketStrategy>? _logger;
 
     private readonly IMqttClient _mqttClient;
+
+    private readonly StellaNowAuthenticationService _authService;
+
+    private readonly StellaNowConfig _config;
+    private readonly StellaNowEnvironmentConfig _envConfig; 
     
-    private readonly string _brokerUrl;
-    private readonly string _clientId;
     private readonly string _topic;
-
-    private readonly string? _username;
-    private readonly string? _password;
-
-    private string? _token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gR" +
-        "G9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.98lAtR21JMLpxbXT04bRdINZx4y9z5gXgLV7q3Be6b0";
     
     public bool IsConnected => _mqttClient.IsConnected;
     
@@ -34,14 +32,16 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     
     public StellaNowMqttWebSocketStrategy(
         ILogger<StellaNowMqttWebSocketStrategy>? logger,
-        string brokerUrl, string clientId, string username, string password, string topic)
+        StellaNowAuthenticationService authService,
+        StellaNowEnvironmentConfig envConfig,
+        StellaNowConfig config)
     {
         _logger = logger;
-        _brokerUrl = brokerUrl;
-        _clientId = clientId;
-        _username = username;
-        _password = password;
-        _topic = topic;
+        _authService = authService;
+        _config = config;
+        _envConfig = envConfig;
+            
+        _topic = "in/" + _config.OrganizationId;
         
         var factory = new MqttFactory();
         _mqttClient = factory.CreateMqttClient();
@@ -52,7 +52,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
 
     private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
     {
-        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Connected");
+        _logger?.LogInformation("Connected");
         if (ConnectedAsync is { } handler)
         {
             await handler(e);
@@ -61,7 +61,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
 
     private async Task OnDisconnectedAsync(StellaNowDisconnectedEventArgs e)
     {
-        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Disconnected");
+        _logger?.LogInformation("Disconnected");
         if (DisconnectedAsync is { } handler)
         {
             await handler(e);
@@ -73,7 +73,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
         _ = Task.Run(
             async () =>
             {
-                _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Started Reconnection Monitor");
+                _logger?.LogInformation("Started Reconnection Monitor");
                 
                 while (true)
                 {
@@ -86,7 +86,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
                     }
                     catch
                     {
-                        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Reconnection Monitor: Unhandled Exception");
+                        _logger?.LogInformation("Reconnection Monitor: Unhandled Exception");
                         // Handle the exception properly (logging etc.).
                     }
                     finally
@@ -100,15 +100,15 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
 
     private async Task ConnectAsync()
     {
-        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Connecting");
-        
-        // TODO: call Keycloak
+        _logger?.LogInformation("Connecting");
+
+        await _authService.AuthenticateAsync();
         
         var options = new MqttClientOptionsBuilder()
-            .WithClientId(_clientId)
-            .WithWebSocketServer(_brokerUrl)
+            .WithClientId(_config.ClientId)
+            .WithWebSocketServer(_envConfig.BrokerUrl)
             .WithTls()
-            .WithCredentials(_username, _token)
+            .WithCredentials(_authService.GetAccessToken(), _authService.GetAccessToken())
             .Build();
 
         await _mqttClient.ConnectAsync(options);
@@ -116,7 +116,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
 
     private async Task DisconnectAsync()
     {
-        _logger?.LogInformation("StellaNowMqttWebSocketStrategy: Disconnecting");
+        _logger?.LogInformation("Disconnecting");
         
         if(_reconnectCancellationTokenSource is { IsCancellationRequested: false })
         {
@@ -141,7 +141,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
 
     public async Task SendMessageAsync(StellaNowEventWrapper message)
     {
-        _logger?.LogDebug("StellaNowMqttWebSocketStrategy: Sending Message: " + message.Value.Metadata.MessageId);
+        _logger?.LogDebug("Sending Message: {Message}", message.Value.Metadata.MessageId);
         var messageString = message.GetForDispatch();
         var messageBytes = Encoding.UTF8.GetBytes(messageString);
         
@@ -156,7 +156,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     
     public void Dispose()
     {
-        _logger?.LogDebug("StellaNowMqttWebSocketStrategy: Disposing");
+        _logger?.LogDebug("Disposing");
         _reconnectCancellationTokenSource?.Cancel();
         _reconnectCancellationTokenSource?.Dispose();
     }
