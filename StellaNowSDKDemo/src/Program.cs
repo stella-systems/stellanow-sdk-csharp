@@ -56,14 +56,14 @@ internal class Program
         });
 
         services.AddStellaNowSdk(
-            StellaNowEnvironment.Development,
+            StellaNowEnvironment.Integrations,
             new StellaNowConfig
             {
                 ApiKey = "username10@some.domain",
                 ApiSecret = "1234567890",
                 ClientId = "StellaNowCsharpSDK",
-                OrganizationId = "23bd77b6-11c1-494d-8881-f636928ccf62",
-                ProjectId = "18d41262-07e5-4e8a-9b06-cc238d013d09"
+                OrganizationId = "62dbd729-54c0-43cd-9282-1828424f0873",
+                ProjectId = "9569c762-a633-4606-b2a0-c05b4fbac542"
             }
         );
 

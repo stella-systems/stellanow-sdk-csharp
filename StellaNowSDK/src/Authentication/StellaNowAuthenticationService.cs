@@ -75,12 +75,36 @@ public class StellaNowAuthenticationService
 
     private async Task<bool> RefreshTokensAsync()
     {
-        // Call the /ipm/refresh route with the refresh token and handle the response
-        // If it succeeds, update the access token and return true
-        // If it fails, return false
+        _logger?.LogWarning("Attempting Token Refresh");
+        
+        var httpClient = new HttpClient();
 
-        await AuthenticateAsync();
+        var refreshPayload = new 
+        {
+            refresh_token = _refreshToken
+        };
 
+        _accessToken = string.Empty;
+        _refreshToken = string.Empty;
+        
+        var httpResponse = await httpClient.PostAsync(
+            _envConfig.AuthRefreshUrl, 
+            new StringContent(JsonConvert.SerializeObject(refreshPayload), Encoding.UTF8, "application/json"));
+
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            _logger?.LogWarning("Token refresh failed");
+            return false;
+        }
+    
+        var responseString = await httpResponse.Content.ReadAsStringAsync();
+        var refreshResponse = JsonConvert.DeserializeObject<dynamic>(responseString);
+
+        _accessToken = refreshResponse.details.access_token;
+        _refreshToken = refreshResponse.details.refresh_token;
+    
+        _logger?.LogInformation("Token refresh successful");
+        
         return true;
     }
 
