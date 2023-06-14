@@ -9,6 +9,8 @@ namespace StellaNowSDKDemo;
 
 internal class Program
 {
+    private const int MessageCount = 10;
+    
     private static IServiceProvider _serviceProvider;
     
     static async Task Main(string[] args)
@@ -18,12 +20,14 @@ internal class Program
         var stellaSdk = _serviceProvider.GetRequiredService<IStellaNowSdk>();
         var logger = _serviceProvider.GetRequiredService<ILogger<Program>>();
 
+        // Establish connection
         await stellaSdk.StartAsync();
 
         // Ensure connection is established
         await Task.Delay(TimeSpan.FromSeconds(5));
 
-        while (true)
+        // Send 5 messages
+        for (int i = 0; i < MessageCount; i++)
         {
             var uuid = Guid.NewGuid().ToString();
 
@@ -36,16 +40,21 @@ internal class Program
             stellaSdk.SendMessage(message);
             logger.LogInformation("New Message Queued");
 
+            // Delay between messages
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-        
+
+        // Disconnect and terminate
+        await stellaSdk.StopAsync();
         DisposeServices();
     }
-    
+
     private static void RegisterServices()
     {
+        // Create a new instance of ServiceCollection to register application services.
         var services = new ServiceCollection();
 
+        // Configure logging to use a simple console logger and set the minimum log level.
         services.AddLogging(builder =>
         {
             builder.AddSimpleConsole(options =>
@@ -55,6 +64,7 @@ internal class Program
             builder.SetMinimumLevel(LogLevel.Debug);
         });
 
+        // Register StellaNowSdk with necessary configurations and environment.
         services.AddStellaNowSdk(
             StellaNowEnvironment.Integrations,
             new StellaNowConfig
@@ -67,6 +77,7 @@ internal class Program
             }
         );
 
+        // Build the service provider from the service collection.
         _serviceProvider = services.BuildServiceProvider();
     }
 
