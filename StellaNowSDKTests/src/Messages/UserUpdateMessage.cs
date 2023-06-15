@@ -14,5 +14,4 @@ public class UserUpdateMessage : StellaNowMessageWrapper
         AddField("dob", dob);
         AddField("email", email);
     }
-
 }
