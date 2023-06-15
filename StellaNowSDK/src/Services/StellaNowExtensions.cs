@@ -21,7 +21,7 @@ public static class StellaNowExtensions
             case StellaNowEnvironment.Development:
                 services.AddSingleton<StellaNowEnvironmentConfig, StellaNowDevEnvironmentConfig>();
                 break;
-            case StellaNowEnvironment.Integrations:
+            case StellaNowEnvironment.Integration:
                 services.AddSingleton<StellaNowEnvironmentConfig, StellaNowIntEnvironmentConfig>();
                 break;
         }
