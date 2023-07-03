@@ -162,8 +162,8 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     public async Task SendMessageAsync(StellaNowEventWrapper message)
     {
         _logger?.LogDebug("Sending Message: {Message}", message.Value.Metadata.MessageId);
-        var messageString = message.GetForDispatch();
-        var messageBytes = Encoding.UTF8.GetBytes(messageString);
+        
+        var messageBytes = Encoding.UTF8.GetBytes(message.ToString());
         
         var mqttMessage = new MqttApplicationMessageBuilder()
             .WithTopic(_topic)
