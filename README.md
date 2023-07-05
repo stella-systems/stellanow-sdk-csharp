@@ -143,7 +143,7 @@ Creating these classes by hand can be prone to errors. Therefore, we provide a c
 
 You can install **StellaNow CLI** tool using pip, which is a package installer for Python. It is hosted on Python Package Index (PyPI), a repository of software for the Python programming language. To install it, open your terminal and run the following command:
 
-    pip install stellanow
+    pip install stellanow-cli
 
 Once you have installed the **StellaNow CLI** tool, you can use it to generate message classes. Detailed instructions on how to use the **StellaNow CLI** tool can be found in the tool's documentation.
 

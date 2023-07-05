@@ -43,9 +43,4 @@ public abstract class StellaNowMessageWrapper
     {
         Fields.Add(new Field(name, value));
     }
-
-    public void SetDispatchTime()
-    {
-        Metadata.MessageProcessingDateUtc = DateTime.UtcNow;
-    }
 }

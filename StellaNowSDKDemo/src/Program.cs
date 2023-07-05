@@ -29,7 +29,7 @@ namespace StellaNowSDKDemo;
 
 internal class Program
 {
-    private const int MessageCount = 10;
+    private const int MessageCount = 1;
     
     private static IServiceProvider _serviceProvider;
     
@@ -46,14 +46,15 @@ internal class Program
         // Ensure connection is established
         await Task.Delay(TimeSpan.FromSeconds(5));
 
+        var uuid = Guid.NewGuid().ToString();
+        
         // Send 5 messages
         for (int i = 0; i < MessageCount; i++)
         {
-            var uuid = Guid.NewGuid().ToString();
-
             var message = new UserLoginMessage(
-                uuid, uuid,
-                DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                uuid,
+                DateTime.UtcNow,
+                uuid
             );
 
             // Send the message
@@ -92,8 +93,8 @@ internal class Program
                 ApiKey = "username10@some.domain",
                 ApiSecret = "1234567890",
                 ClientId = "StellaNowSDK",
-                OrganizationId = "62dbd729-54c0-43cd-9282-1828424f0873",
-                ProjectId = "0a1aae1e-b798-4a8a-a9f7-6aa521c6209d"
+                OrganizationId = "e24f2940-04b0-493b-a28c-d809b2399382",
+                ProjectId = "9e9f347a-b7e8-4221-a7b3-05111b3eb40e"
             }
         );
 

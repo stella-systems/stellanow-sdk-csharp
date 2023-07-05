@@ -43,10 +43,4 @@ public sealed class StellaNowEventWrapper
         };
         return JsonConvert.SerializeObject(this, settings);
     }
-
-    public string GetForDispatch()
-    {
-        Value.SetDispatchTime();
-        return ToString();
-    }
 }
