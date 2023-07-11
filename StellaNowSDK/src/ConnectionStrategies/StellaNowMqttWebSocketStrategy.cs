@@ -88,7 +88,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
         }
     }
 
-    private void StartReconnectMonitor()
+    private void StartReconnectMonitor(CancellationToken token)
     {
         _ = Task.Run(
             async () =>
@@ -112,10 +112,10 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
                     finally
                     {
                         // Check the connection state every 5 seconds and perform a reconnect if required.
-                        await Task.Delay(TimeSpan.FromSeconds(5), _reconnectCancellationTokenSource.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(5), token);
                     }
                 }
-            }, _reconnectCancellationTokenSource.Token);
+            }, token);
     }
 
     private async Task ConnectAsync()
@@ -151,7 +151,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     public async Task StartAsync()
     {
         _reconnectCancellationTokenSource = new CancellationTokenSource();
-        StartReconnectMonitor();
+        StartReconnectMonitor(_reconnectCancellationTokenSource.Token);
     }
     
     public async Task StopAsync()
