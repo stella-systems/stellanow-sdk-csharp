@@ -7,6 +7,7 @@ Welcome to the StellaNow C# SDK. This SDK is designed to provide an easy-to-use 
 * Message queuing to handle any network instability
 * Authentication management (login and automatic token refreshing)
 * Easy interface to send different types of messages
+* Per-message callbacks for notification of successful message sending
 * Extensibility options for more specific needs
 
 ## Getting Started
@@ -35,94 +36,114 @@ You will need to provide necessary credentials to interact with the Stella Now p
 
 Replace **<Your-API-Key>**, **<Your-API-Secret>**, **<Your-Client-ID>**, **<Your-Organization-ID>**, and **<Your-Project-ID>** with your respective Stella Now credentials.
 
-## Sample Application
-Here is a simple application that uses StellaNowSDK to send user login messages to the Stella Now platform:
+<div class="alert alert-warning">
+<strong>Note:</strong> Please note that the ClientId used in the StellaNowConfig needs to be unique per connection. If two connections use the same ClientId, then the first connection will be dropped. Always ensure that the ClientId is unique for each connection your application makes.
+</div>
 
-    internal class Program
+## Sample Application
+Here is a simple application that uses StellaNowSDK to send user login messages to the Stella Now platform.
+
+This function is the main entry point for our demonstration.
+The **RunAsync** function does a few things:
+
+* It establishes a connection to StellaNow.
+* It creates a series of **UserLoginMessage** messages and sends them using the StellaNow SDK.
+* It checks and logs whether there are any messages left in the queue.
+* Finally, it disconnects from StellaNow and disposes of the services.
+
+
+    private async Task RunAsync()
     {
-    private static IServiceProvider _serviceProvider;
-    
-        static async Task Main(string[] args)
+        // Establish connection
+        await _stellaSdk.StartAsync();
+
+        // Ensure connection is established
+        await Task.Delay(TimeSpan.FromSeconds(5));
+
+        // var uuid = Guid.NewGuid().ToString();
+        var uuid = "8fbdae3b-035f-4b65-977f-a1a4551cbb76";
+        
+        // Send 5 messages
+        for (int i = 0; i < MessageCount; i++)
         {
-            RegisterServices();
-    
-            var stellaSdk = _serviceProvider.GetRequiredService<IStellaNowSdk>();
-            var logger = _serviceProvider.GetRequiredService<ILogger<Program>>();
-    
-            // Establish connection
-            await stellaSdk.StartAsync();
-    
-            // Ensure connection is established
-            await Task.Delay(TimeSpan.FromSeconds(5));
-    
-            // Send 5 messages
-            for (int i = 0; i < 5; i++)
-            {
-                var uuid = Guid.NewGuid().ToString();
-    
-                var message = new UserLoginMessage(
-                    uuid, uuid,
-                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
-                );
-    
-                // Send the message
-                stellaSdk.SendMessage(message);
-                logger.LogInformation("New Message Queued");
-    
-                // Delay between messages
-                await Task.Delay(TimeSpan.FromSeconds(1));
-            }
-    
-            // Disconnect and terminate
-            await stellaSdk.StopAsync();
-            DisposeServices();
-        }
-    
-        private static void RegisterServices()
-        {
-            // Create a new instance of ServiceCollection to register application services.
-            var services = new ServiceCollection();
-    
-            // Configure logging to use a simple console logger and set the minimum log level.
-            services.AddLogging(builder =>
-            {
-                builder.AddSimpleConsole(options =>
-                {
-                    options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
-                });
-                builder.SetMinimumLevel(LogLevel.Debug);
-            });
-    
-            // Register StellaNowSdk with necessary configurations and environment.
-            services.AddStellaNowSdk(
-                StellaNowEnvironment.Integrations,
-                new StellaNowConfig
-                {
-                    ApiKey = "username10@some.domain",
-                    ApiSecret = "1234567890",
-                    ClientId = "StellaNowCsharpSDK",
-                    OrganizationId = "62dbd729-54c0-43cd-9282-1828424f0873",
-                    ProjectId = "9569c762-a633-4606-b2a0-c05b4fbac542"
-                }
+            var message = new UserLoginMessage(
+                uuid,
+                DateTime.UtcNow,
+                2,
+                uuid
             );
-    
-            // Build the service provider from the service collection.
-            _serviceProvider = services.BuildServiceProvider();
-        }
-    
-        private static void DisposeServices()
-        {
-            if (_serviceProvider == null)
-            {
-                return;
-            }
+
+            // Send the message
+            _stellaSdk.SendMessage(message, OnMessageSentAction);
+            _logger.LogInformation("New Message Queued");
+
+            _logger.LogInformation(
+                "Queue has messages {HasMessages} and count is {Count}",
+                _stellaSdk.HasMessagesPendingForDispatch(),
+                _stellaSdk.MessagesPendingForDispatchCount()
+            );
             
-            if (_serviceProvider is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
+            // Delay between messages
+            await Task.Delay(TimeSpan.FromSeconds(1));
         }
+
+        // Disconnect and terminate
+        await _stellaSdk.StopAsync();
+        DisposeServices();
     }
+
+Below is the function to register services for the application.
+
+**'RegisterServices'** function registers services needed for the application, such as logging and StellaNow SDK. It then builds the service provider from the service collection.
+
+    private static void RegisterServices()
+    {
+        // Create a new instance of ServiceCollection to register application services.
+        var services = new ServiceCollection();
+
+        // Configure logging to use a simple console logger and set the minimum log level.
+        services.AddLogging(builder =>
+        {
+            builder.AddSimpleConsole(options =>
+            {
+                options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
+            });
+            builder.SetMinimumLevel(LogLevel.Debug);
+        });
+        
+        services.AddTransient<Program>();
+
+        // Register StellaNowSdk with necessary configurations and environment.
+        services.AddStellaNowSdk(
+            StellaNowEnvironment.Integration,
+            new StellaNowConfig
+            {
+                ApiKey = <YOUR_API_KEY>,
+                ApiSecret = <YOUR_API_SECRET>,
+                ClientId = <UNIQUE_CLIENT_IDENTIFIER>,
+                OrganizationId = <YOUR_ORGANIZATION_UUID>,
+                ProjectId = <YOUR_PROJECT_UUID>
+            }
+        );
+
+        // Build the service provider from the service collection.
+        _serviceProvider = services.BuildServiceProvider();
+    }
+
+
+This is the callback function that gets called when a message is successfully sent.
+The **OnMessageSentAction** function logs the information that a message was sent successfully, along with the message's ID.
+
+    private void OnMessageSentAction(StellaNowEventWrapper message)
+    {
+        _logger.LogInformation(
+            "Send Confirmation: {MessagesId}",
+            message.Value.Metadata.MessageId
+        );
+    }
+
+The full code for sample applications can be found here: 
+[Basic Application](StellaNowSDKDemo/src/Program.cs)
 
 ## Message Formatting
 Messages in StellaNowSDK are wrapped in a **StellaNowMessageWrapper** and each specific message type extends this class to define its own properties. Each message needs to follow a certain format, including a type, list of entities, and optional fields. Here is an example:
