@@ -64,9 +64,9 @@ public class StellaNowMqttConnectionStrategyTests
 
         _stellaSdk = _serviceProvider.GetRequiredService<IStellaNowSdk>();
 
-        _stellaSdk.StartAsync().Wait();
+        await _stellaSdk.StartAsync();
         // StartAsync does not wait for establishing connection, it just starts connection monitor instead.
-        Task.Delay(TimeSpan.FromSeconds(5)).Wait();
+        await Task.Delay(TimeSpan.FromSeconds(5));
     }
     
     [TestMethod]

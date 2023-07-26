@@ -64,6 +64,16 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
         _messageQueueStrategy.Enqueue(message);
     }
 
+    public bool IsQueueEmpty()
+    {
+        return _messageQueueStrategy.IsEmpty();
+    }
+
+    public int GetMessageCountOnQueue()
+    {
+        return _messageQueueStrategy.GetMessageCount();
+    }
+
     private async Task ProcessMessageQueueAsync()
     {
         _logger?.LogDebug("Start Processing Message Queue");

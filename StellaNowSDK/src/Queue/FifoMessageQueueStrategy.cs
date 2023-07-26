@@ -36,4 +36,14 @@ public sealed class FifoMessageQueueStrategy : IMessageQueueStrategy
     {
         return _queue.TryDequeue(out message);
     }
+    
+    public bool IsEmpty()
+    {
+        return !_queue.Any();
+    }
+
+    public int GetMessageCount()
+    {
+        return _queue.Count;
+    }
 }

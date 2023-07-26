@@ -36,4 +36,14 @@ public sealed class LifoMessageQueueStrategy : IMessageQueueStrategy
     {
         return _stack.TryPop(out message);
     }
+    
+    public bool IsEmpty()
+    {
+        return !_stack.Any();
+    }
+
+    public int GetMessageCount()
+    {
+        return _stack.Count;
+    }
 }
