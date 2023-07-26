@@ -23,6 +23,7 @@ using StellaNowSDK.Config;
 using StellaNowSDK.ConnectionStrategies;
 using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
+using StellaNowSDK.Types;
 
 namespace StellaNowSDK.Services;
 
@@ -69,12 +70,13 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         await _connectionStrategy.StopAsync();
     }
 
-    public void SendMessage(StellaNowMessageWrapper message)
+    public void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null)
     {
         _messageQueue.EnqueueMessage(
             new StellaNowEventWrapper(
                 new EventKey(_config.OrganizationId, _config.ProjectId),
-                message)
+                message,
+                callback)
         );
     }
 

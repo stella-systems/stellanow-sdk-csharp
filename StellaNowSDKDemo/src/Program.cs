@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
 using StellaNowSDK.Enums;
+using StellaNowSDK.Messages;
 using StellaNowSDK.Services;
 using StellaNowSDKDemo.Messages;
 
@@ -31,17 +32,20 @@ internal class Program
 {
     private const int MessageCount = 1;
     
-    private static IServiceProvider _serviceProvider;
+    private static IServiceProvider? _serviceProvider;
+    private readonly ILogger<Program> _logger;
+    private readonly IStellaNowSdk _stellaSdk;
     
-    static async Task Main(string[] args)
+    public Program(IStellaNowSdk stellaSdk, ILogger<Program> logger)
     {
-        RegisterServices();
+        _stellaSdk = stellaSdk;
+        _logger = logger;
+    }
 
-        var stellaSdk = _serviceProvider.GetRequiredService<IStellaNowSdk>();
-        var logger = _serviceProvider.GetRequiredService<ILogger<Program>>();
-
+    private async Task RunAsync()
+    {
         // Establish connection
-        await stellaSdk.StartAsync();
+        await _stellaSdk.StartAsync();
 
         // Ensure connection is established
         await Task.Delay(TimeSpan.FromSeconds(5));
@@ -58,13 +62,13 @@ internal class Program
             );
 
             // Send the message
-            stellaSdk.SendMessage(message);
-            logger.LogInformation("New Message Queued");
+            _stellaSdk.SendMessage(message, OnMessageSentAction);
+            _logger.LogInformation("New Message Queued");
 
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Queue has messages {HasMessages} and count is {Count}",
-                stellaSdk.HasMessagesPendingForDispatch(),
-                stellaSdk.MessagesPendingForDispatchCount()
+                _stellaSdk.HasMessagesPendingForDispatch(),
+                _stellaSdk.MessagesPendingForDispatchCount()
             );
             
             // Delay between messages
@@ -72,7 +76,7 @@ internal class Program
         }
 
         // Disconnect and terminate
-        await stellaSdk.StopAsync();
+        await _stellaSdk.StopAsync();
         DisposeServices();
     }
 
@@ -90,6 +94,8 @@ internal class Program
             });
             builder.SetMinimumLevel(LogLevel.Debug);
         });
+        
+        services.AddTransient<Program>();
 
         // Register StellaNowSdk with necessary configurations and environment.
         services.AddStellaNowSdk(
@@ -108,16 +114,33 @@ internal class Program
         _serviceProvider = services.BuildServiceProvider();
     }
 
+    private void OnMessageSentAction(StellaNowEventWrapper message)
+    {
+        _logger.LogInformation(
+            "Send Confirmation: {MessagesId}",
+            message.Value.Metadata.MessageId
+        );
+    }
+
     private static void DisposeServices()
     {
-        if (_serviceProvider == null)
+        switch (_serviceProvider)
         {
-            return;
+            case null:
+                return;
+            case IDisposable disposable:
+                disposable.Dispose();
+                break;
         }
-        
-        if (_serviceProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
+    }
+    
+    static async Task Main(string[] args)
+    {
+        RegisterServices();
+
+        var program = _serviceProvider?.GetRequiredService<Program>();
+        await program?.RunAsync()!;
+
+        DisposeServices();
     }
 }

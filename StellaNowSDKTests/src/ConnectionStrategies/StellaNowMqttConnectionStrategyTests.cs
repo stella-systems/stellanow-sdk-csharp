@@ -24,7 +24,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StellaNowSDK.Config;
 using StellaNowSDK.Enums;
 using StellaNowSDK.Services;
-using StellaNowSDKTests.Messages;
+using StellaNowSdkTests.TestUtilities;
 
 namespace StellaNowSdkTests.ConnectionStrategies;
 

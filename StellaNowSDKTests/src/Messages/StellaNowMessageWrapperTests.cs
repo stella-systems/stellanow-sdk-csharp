@@ -22,7 +22,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using StellaNowSDK.Messages;
-using StellaNowSDKTests.Messages;
+using StellaNowSdkTests.TestUtilities;
+
+namespace StellaNowSdkTests.Messages;
 
 [TestClass]
 public class StellaNowMessageWrapperTests
