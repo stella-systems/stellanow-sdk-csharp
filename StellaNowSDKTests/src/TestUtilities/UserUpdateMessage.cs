@@ -18,23 +18,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
-using StellaNowSDK.Types;
 
-namespace StellaNowSDK.Services;
+namespace StellaNowSdkTests.TestUtilities;
 
-public interface IStellaNowSdk
+public class UserUpdateMessage : StellaNowMessageWrapper
 {
-    bool IsConnected { get; }
-
-    event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
-    event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
-
-    Task StartAsync();
-    Task StopAsync();
-    void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null);
-
-    bool HasMessagesPendingForDispatch();
-    int MessagesPendingForDispatchCount();
+    public UserUpdateMessage(string punterId, string firstName, string lastName, string dob, string email) 
+        : base(
+            "user_update", 
+            new List<EntityType>{new EntityType("punter", punterId)})
+    {
+        AddField("firstName", firstName);
+        AddField("lastName", lastName);
+        AddField("dob", dob);
+        AddField("email", email);
+    }
 }

@@ -172,6 +172,8 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
             .Build();
 
         await _mqttClient.PublishAsync(mqttMessage);
+        
+        message.Callback?.Invoke(message);
     }
     
     public void Dispose()

@@ -20,6 +20,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using StellaNowSDK.Types;
 
 namespace StellaNowSDK.Messages;
 
@@ -29,12 +30,15 @@ public sealed class StellaNowEventWrapper
     
     public StellaNowMessageWrapper Value { get; set; }
 
-    public StellaNowEventWrapper(EventKey key, StellaNowMessageWrapper value)
+    [JsonIgnore] public readonly OnMessageSent? Callback;
+    
+    public StellaNowEventWrapper(EventKey key, StellaNowMessageWrapper value, OnMessageSent? callback)
     {
         Key = key;
         Value = value;
+        Callback = callback;
     }
-    
+
     public override string ToString()
     {
         var settings = new JsonSerializerSettings()
