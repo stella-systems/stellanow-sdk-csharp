@@ -52,9 +52,7 @@ public class StellaNowMessageWrapperTests
 
         var expectedMetadata = new 
         {
-            Source = "external",
             MessageId = userUpdateMessage.Metadata.MessageId,
-            MessageProcessingDateUtc = userUpdateMessage.Metadata.MessageProcessingDateUtc,
             MessageOriginDateUtc = userUpdateMessage.Metadata.MessageOriginDateUtc,
             EventTypeDefinitionId = "user_update",
             EntityTypeIds = userUpdateMessage.Metadata.EntityTypeIds

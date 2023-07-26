@@ -77,6 +77,16 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
                 message)
         );
     }
+
+    public bool HasMessagesPendingForDispatch()
+    {
+        return !_messageQueue.IsQueueEmpty();
+    }
+
+    public int MessagesPendingForDispatchCount()
+    {
+        return _messageQueue.GetMessageCountOnQueue();
+    }
     
     private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
     {

@@ -61,6 +61,12 @@ internal class Program
             stellaSdk.SendMessage(message);
             logger.LogInformation("New Message Queued");
 
+            logger.LogInformation(
+                "Queue has messages {HasMessages} and count is {Count}",
+                stellaSdk.HasMessagesPendingForDispatch(),
+                stellaSdk.MessagesPendingForDispatchCount()
+            );
+            
             // Delay between messages
             await Task.Delay(TimeSpan.FromSeconds(1));
         }

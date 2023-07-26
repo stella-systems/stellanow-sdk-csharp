@@ -33,4 +33,7 @@ public interface IStellaNowSdk
     Task StartAsync();
     Task StopAsync();
     void SendMessage(StellaNowMessageWrapper message);
+
+    bool HasMessagesPendingForDispatch();
+    int MessagesPendingForDispatchCount();
 }
