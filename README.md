@@ -22,149 +22,186 @@ To install the SDK in your project:
 ## Configuration
 You will need to provide necessary credentials to interact with the Stella Now platform:
 
-    services.AddStellaNowSdk(
-        StellaNowEnvironment.Integrations,
-        new StellaNowConfig
-        {
-            ApiKey = "<Your-API-Key>",
-            ApiSecret = "<Your-API-Secret>",
-            ClientId = "<Your-Client-ID>",
-            OrganizationId = "<Your-Organization-ID>",
-            ProjectId = "<Your-Project-ID>"
-        }
-    );
+```csharp
+services.AddStellaNowSdk(
+    StellaNowEnvironment.Integrations,
+    new StellaNowConfig
+    {
+        ApiKey = "<Your-API-Key>",
+        ApiSecret = "<Your-API-Secret>",
+        ClientId = "<Your-Client-ID>",
+        OrganizationId = "<Your-Organization-ID>",
+        ProjectId = "<Your-Project-ID>"
+    }
+);
+```
 
-Replace **<Your-API-Key>**, **<Your-API-Secret>**, **<Your-Client-ID>**, **<Your-Organization-ID>**, and **<Your-Project-ID>** with your respective Stella Now credentials.
+Replace `<Your-API-Key>`, `<Your-API-Secret>`, `<Your-Client-ID>`, `<Your-Organization-ID>`, and `<Your-Project-ID>` with your respective Stella Now credentials.
 
-<div class="alert alert-warning">
-<strong>Note:</strong> Please note that the ClientId used in the StellaNowConfig needs to be unique per connection. If two connections use the same ClientId, then the first connection will be dropped. Always ensure that the ClientId is unique for each connection your application makes.
-</div>
+> **Note:**  Please note that the `ClientId` used in the `StellaNowConfig` needs to be unique per connection. If two connections use the same `ClientId`, then the first connection will be dropped. Always ensure that the `ClientId` is unique for each connection your application makes.
 
 ## Sample Application
 Here is a simple application that uses StellaNowSDK to send user login messages to the Stella Now platform.
 
 This function is the main entry point for our demonstration.
-The **RunAsync** function does a few things:
+The `RunAsync` function does a few things:
 
 * It establishes a connection to StellaNow.
-* It creates a series of **UserLoginMessage** messages and sends them using the StellaNow SDK.
+* It creates a series of `UserLoginMessage` messages and sends them using the StellaNow SDK.
 * It checks and logs whether there are any messages left in the queue.
 * Finally, it disconnects from StellaNow and disposes of the services.
 
+```csharp
+private async Task RunAsync()
+{
+    // Establish connection
+    await _stellaSdk.StartAsync();
 
-    private async Task RunAsync()
+    // Ensure connection is established
+    await Task.Delay(TimeSpan.FromSeconds(5));
+
+    // var uuid = Guid.NewGuid().ToString();
+    var uuid = "8fbdae3b-035f-4b65-977f-a1a4551cbb76";
+    
+    // Send 5 messages
+    for (int i = 0; i < MessageCount; i++)
     {
-        // Establish connection
-        await _stellaSdk.StartAsync();
+        var message = new UserLoginMessage(
+            uuid,
+            DateTime.UtcNow,
+            2,
+            uuid
+        );
 
-        // Ensure connection is established
-        await Task.Delay(TimeSpan.FromSeconds(5));
+        // Send the message
+        _stellaSdk.SendMessage(message, OnMessageSentAction);
+        _logger.LogInformation("New Message Queued");
 
-        // var uuid = Guid.NewGuid().ToString();
-        var uuid = "8fbdae3b-035f-4b65-977f-a1a4551cbb76";
+        _logger.LogInformation(
+            "Queue has messages {HasMessages} and count is {Count}",
+            _stellaSdk.HasMessagesPendingForDispatch(),
+            _stellaSdk.MessagesPendingForDispatchCount()
+        );
         
-        // Send 5 messages
-        for (int i = 0; i < MessageCount; i++)
-        {
-            var message = new UserLoginMessage(
-                uuid,
-                DateTime.UtcNow,
-                2,
-                uuid
-            );
-
-            // Send the message
-            _stellaSdk.SendMessage(message, OnMessageSentAction);
-            _logger.LogInformation("New Message Queued");
-
-            _logger.LogInformation(
-                "Queue has messages {HasMessages} and count is {Count}",
-                _stellaSdk.HasMessagesPendingForDispatch(),
-                _stellaSdk.MessagesPendingForDispatchCount()
-            );
-            
-            // Delay between messages
-            await Task.Delay(TimeSpan.FromSeconds(1));
-        }
-
-        // Disconnect and terminate
-        await _stellaSdk.StopAsync();
-        DisposeServices();
+        // Delay between messages
+        await Task.Delay(TimeSpan.FromSeconds(1));
     }
+
+    // Disconnect and terminate
+    await _stellaSdk.StopAsync();
+    DisposeServices();
+}
+```
 
 Below is the function to register services for the application.
 
-**'RegisterServices'** function registers services needed for the application, such as logging and StellaNow SDK. It then builds the service provider from the service collection.
+`RegisterServices` function registers services needed for the application, such as logging and StellaNow SDK. It then builds the service provider from the service collection.
 
-    private static void RegisterServices()
+```csharp
+private static void RegisterServices()
+{
+    // Create a new instance of ServiceCollection to register application services.
+    var services = new ServiceCollection();
+
+    // Configure logging to use a simple console logger and set the minimum log level.
+    services.AddLogging(builder =>
     {
-        // Create a new instance of ServiceCollection to register application services.
-        var services = new ServiceCollection();
-
-        // Configure logging to use a simple console logger and set the minimum log level.
-        services.AddLogging(builder =>
+        builder.AddSimpleConsole(options =>
         {
-            builder.AddSimpleConsole(options =>
-            {
-                options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
-            });
-            builder.SetMinimumLevel(LogLevel.Debug);
+            options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
         });
-        
-        services.AddTransient<Program>();
+        builder.SetMinimumLevel(LogLevel.Debug);
+    });
+    
+    services.AddTransient<Program>();
 
-        // Register StellaNowSdk with necessary configurations and environment.
-        services.AddStellaNowSdk(
-            StellaNowEnvironment.Integration,
-            new StellaNowConfig
-            {
-                ApiKey = <YOUR_API_KEY>,
-                ApiSecret = <YOUR_API_SECRET>,
-                ClientId = <UNIQUE_CLIENT_IDENTIFIER>,
-                OrganizationId = <YOUR_ORGANIZATION_UUID>,
-                ProjectId = <YOUR_PROJECT_UUID>
-            }
-        );
+    // Register StellaNowSdk with necessary configurations and environment.
+    services.AddStellaNowSdk(
+        StellaNowEnvironment.Integration,
+        new StellaNowConfig
+        {
+            ApiKey = <YOUR_API_KEY>,
+            ApiSecret = <YOUR_API_SECRET>,
+            ClientId = <UNIQUE_CLIENT_IDENTIFIER>,
+            OrganizationId = <YOUR_ORGANIZATION_UUID>,
+            ProjectId = <YOUR_PROJECT_UUID>
+        }
+    );
 
-        // Build the service provider from the service collection.
-        _serviceProvider = services.BuildServiceProvider();
-    }
-
+    // Build the service provider from the service collection.
+    _serviceProvider = services.BuildServiceProvider();
+}
+```
 
 This is the callback function that gets called when a message is successfully sent.
-The **OnMessageSentAction** function logs the information that a message was sent successfully, along with the message's ID.
+The `OnMessageSentAction` function logs the information that a message was sent successfully, along with the message's ID.
 
-    private void OnMessageSentAction(StellaNowEventWrapper message)
-    {
-        _logger.LogInformation(
-            "Send Confirmation: {MessagesId}",
-            message.Value.Metadata.MessageId
-        );
-    }
+```csharp
+private void OnMessageSentAction(StellaNowEventWrapper message)
+{
+    _logger.LogInformation(
+        "Send Confirmation: {MessagesId}",
+        message.Value.Metadata.MessageId
+    );
+}
+```
 
 The full code for sample applications can be found here: 
-[Basic Application](StellaNowSDKDemo/src/Program.cs)
+
+* [Basic Application](StellaNowSDKDemo/src/Program.cs)
+
+### IMPORTANT
+
+> **`StopAsync` METHOD USAGE**
+>
+> The `StopAsync` method in the StellaNowSdk can be used with or without parameters. When it is used with the default parameters (i.e., `StopAsync()`), it immediately stops the processing of the message queue and triggers the `OnDisconnected` event.
+>
+> This behavior can have important consequences when you use non-persistent queue implementations. Any messages that have been added to the queue but not yet sent will remain in the queue, unsent, until `StartAsync` is called again.
+>
+> However, if your application is shut down before `StartAsync` is called again, those unsent messages will be lost, because non-persistent queues do not store their contents when the application is terminated.
+>
+> If it is important for your application to ensure that all queued messages are sent before the `OnDisconnected` event is triggered, you should call `StopAsync` with the `waitForEmptyQueue` parameter set to `true`. This will cause `StopAsync` to delay the triggering of the `OnDisconnected` event until the queue is empty, or until a specified timeout period has elapsed.
+>
+> Be aware that this does not delay the shutdown of your application. The application can be shut down independently by the developer or system, regardless of the state of the `StopAsync` method or message queue.
+>
+> Here is an example of how to call `StopAsync` in this way:
+>
+> ```csharp
+> await sdk.StopAsync(waitForEmptyQueue: true);
+> ```
+>
+> In this example, `StopAsync` will wait indefinitely until the queue is empty before triggering `OnDisconnected`. If you want to specify a maximum waiting time, you can use the `timeout` parameter:
+>
+> ```csharp
+> await sdk.StopAsync(waitForEmptyQueue: true, timeout: TimeSpan.FromSeconds(30));
+> ```
+>
+> In this example, `StopAsync` will wait until the queue is empty or until 30 seconds have elapsed, whichever happens first, before triggering `OnDisconnected`.
 
 ## Message Formatting
-Messages in StellaNowSDK are wrapped in a **StellaNowMessageWrapper** and each specific message type extends this class to define its own properties. Each message needs to follow a certain format, including a type, list of entities, and optional fields. Here is an example:
+Messages in StellaNowSDK are wrapped in a `StellaNowMessageWrapper` and each specific message type extends this class to define its own properties. Each message needs to follow a certain format, including a type, list of entities, and optional fields. Here is an example:
 
-    public class UserLoginMessage : StellaNowMessageWrapper
+```csharp
+public class UserLoginMessage : StellaNowMessageWrapper
+{
+    public UserLoginMessage(string patronId, string userId, string timestamp)
+        : base(
+            "user_login",
+            new List<EntityType>{ new EntityType("patron", patronId) })
     {
-        public UserLoginMessage(string patronId, string userId, string timestamp)
-            : base(
-                "user_login",
-                new List<EntityType>{ new EntityType("patron", patronId) })
-        {
-            AddField("user_id", userId);
-            AddField("timestamp", timestamp);
-        }
+        AddField("user_id", userId);
+        AddField("timestamp", timestamp);
     }
+}
+```
 
 Creating these classes by hand can be prone to errors. Therefore, we provide a command line interface (CLI) tool, **StellaNow CLI**, to automate this task. This tool generates the code for the message classes automatically based on the configuration defined in the Operators Console.
 
 You can install **StellaNow CLI** tool using pip, which is a package installer for Python. It is hosted on Python Package Index (PyPI), a repository of software for the Python programming language. To install it, open your terminal and run the following command:
 
-    pip install stellanow-cli
+```bash
+pip install stellanow-cli
+```
 
 Once you have installed the **StellaNow CLI** tool, you can use it to generate message classes. Detailed instructions on how to use the **StellaNow CLI** tool can be found in the tool's documentation.
 
@@ -175,13 +212,15 @@ StellaNowSDK provides the flexibility to adapt to your needs. Developers can ext
 
 By default, the SDK uses in-memory queues to temporarily hold messages before sending them. These queues are not persistent and data will be lost if the application terminates unexpectedly.
 
-If your application requires persistent queues that survive application restarts or crashes, you can implement your own queue strategy by extending the **IMessageQueueStrategy** interface and integrating it with a persistent storage solution (like a database or a disk-based queue).
+If your application requires persistent queues that survive application restarts or crashes, you can implement your own queue strategy by extending the `IMessageQueueStrategy` interface and integrating it with a persistent storage solution (like a database or a disk-based queue).
 
 Here is an example of how to change the queue strategy:
-    
-    services.AddSingleton<IMessageQueueStrategy, YourCustomQueueStrategy>();
 
-Remember to replace **YourCustomQueueStrategy** with your custom strategy class. Be aware that adding a persistent queue may impact the performance of your application depending on the solution used.
+```csharp    
+services.AddSingleton<IMessageQueueStrategy, YourCustomQueueStrategy>();
+```
+
+Remember to replace `YourCustomQueueStrategy` with your custom strategy class. Be aware that adding a persistent queue may impact the performance of your application depending on the solution used.
 
 For advanced customization options and details on how to extend StellaNowSDK, refer to the detailed SDK documentation on our website.
 

@@ -32,7 +32,7 @@ public interface IStellaNowSdk
     event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
 
     Task StartAsync();
-    Task StopAsync();
+    Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null);
     void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null);
 
     bool HasMessagesPendingForDispatch();
