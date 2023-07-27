@@ -32,10 +32,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="stella-orange-square.png">
-            <Pack>True</Pack>
-            <PackagePath></PackagePath>
-        </None>
+        <None Include="stella-orange-square.png" Pack="True" PackagePath="" />
+        <Content Include="..\README.md" Pack="true" PackagePath="" />
     </ItemGroup>
 
 </Project>
