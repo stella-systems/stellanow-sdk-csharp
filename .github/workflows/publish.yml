@@ -10,16 +10,51 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+      
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 6.0.x
+          
+      - name: Restore Dependencies
+        run: dotnet restore StellaNowSDK.sln
+      
       - name: Build
         run: dotnet build StellaNowSDK.sln --configuration Release --no-restore
-      - name: Publish to NuGet
-        uses: brandedoutcast/publish-nuget@v2
+
+      - name: Setup Git User
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Tag Commit
+        run: |
+          version=$(grep -oP '(?<=<Version>).*(?=</Version>)' StellaNowSDK/StellaNowSDK.csproj)
+          git tag -a v$version -m "<tag-message>"
+          git push origin v$version
+          echo "version=v$version" >> $GITHUB_ENV
+
+      - name: Check If Prerelease
+        id: prerelease
+        run: |
+          echo "prerelease=${{ contains(env.version, '-') }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Create a New Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          PROJECT_FILE_PATH: StellaNowSDK/StellaNowSDK.csproj
-          NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
-          TAG_COMMIT: true
-          TAG_FORMAT: v*
+          tag_name: ${{ env.version }}
+          release_name: Release ${{ env.version }}
+          body: |
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: ${{ env.prerelease }}
+
+      - name: Pack
+        run: dotnet pack StellaNowSDK/StellaNowSDK.csproj --configuration Release --output ./publish/ --no-restore --no-build --include-symbols -p:SymbolPackageFormat=snupkg
+
+      - name: Push
+        run: dotnet nuget push "./publish/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json

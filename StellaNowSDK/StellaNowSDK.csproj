@@ -4,7 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>0.0.1-rc2</Version>
+        <Version>0.1.0</Version>
         <Title>Stella Now C# SDK</Title>
         <Authors>Stella Technologies (UK) Limited</Authors>
         <PackageProjectUrl>https://www.stella.systems</PackageProjectUrl>
