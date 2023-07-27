@@ -63,9 +63,27 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         await _connectionStrategy.StartAsync();
     }
 
-    public async Task StopAsync()
+    public async Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null)
     {
         _logger?.LogInformation("Stopping");
+        
+        if (waitForEmptyQueue)
+        {
+            var cancellationTokenSource = new CancellationTokenSource(timeout ?? TimeSpan.FromMinutes(1)); // default to 1 minute timeout
+
+            _logger?.LogInformation("Waiting for message queue to empty");
+            while (this.HasMessagesPendingForDispatch())
+            {
+                if (cancellationTokenSource.IsCancellationRequested)
+                {
+                    _logger?.LogWarning("Timeout exceeded while waiting for the message queue to empty");
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(100)); // delay can be adjusted based on needs
+            }
+        }
+        
         _messageQueue.StopProcessing();
         await _connectionStrategy.StopAsync();
     }

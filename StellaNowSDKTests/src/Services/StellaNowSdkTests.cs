@@ -100,5 +100,57 @@ namespace StellaNowSdkTests.Services
             // Assert
             Assert.IsTrue(messageSent);
         }
+        
+        [TestMethod]
+        public async Task Test_StopAsync_WaitsUntilQueueIsEmpty()
+        {
+            // Arrange
+            var queueResults = new Queue<bool>();
+            queueResults.Enqueue(false);  // Has pending messages
+            queueResults.Enqueue(false);  // Has pending messages
+            queueResults.Enqueue(true);   // No pending messages
+
+            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty())
+                .Returns(() => queueResults.Count > 0 ? queueResults.Dequeue() : true);  // If the queue is exhausted, return true (no messages pending)
+
+            // Act
+            await _sdk.StopAsync(waitForEmptyQueue: true);  // Set a short timeout for the test
+
+            // Assert
+            _mockMessageQueue.Verify(mq => mq.StopProcessing(), Times.Once());
+            _mockConnectionStrategy.Verify(cs => cs.StopAsync(), Times.Once());
+        }
+        
+        [TestMethod]
+        public async Task Test_StopAsync_WaitsUntilQueueIsEmptyTimeout()
+        {
+            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+
+            // Act
+            await _sdk.StopAsync(waitForEmptyQueue: true, TimeSpan.FromSeconds(1));  // Set a short timeout for the test
+
+            // Assert
+            _mockMessageQueue.Verify(mq => mq.StopProcessing(), Times.Once());
+            _mockConnectionStrategy.Verify(cs => cs.StopAsync(), Times.Once());
+        }
+        
+        [TestMethod]
+        public async Task Test_StopAsync_DoNotWaitUntilQueueIsEmpty()
+        {
+            // Arrange
+            // Set up the mock to indicate that the queue is never empty.
+            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+
+            // Act
+            // Call StopAsync with waitForEmptyQueue set to default false.
+            await _sdk.StopAsync();
+
+            // Assert
+            // Verify that StopProcessing was called once.
+            _mockMessageQueue.Verify(mq => mq.StopProcessing(), Times.Once);
+
+            // Verify that IsQueueEmpty was never called.
+            _mockMessageQueue.Verify(mq => mq.IsQueueEmpty(), Times.Never);
+        }
     }
 }
