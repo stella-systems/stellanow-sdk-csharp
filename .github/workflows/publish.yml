@@ -1,0 +1,25 @@
+name: Build and Publish to NuGet
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+      - name: Build
+        run: dotnet build StellaNowSDK/StellaNowSDK.sln --configuration Release --no-restore
+      - name: Publish to NuGet
+        uses: brandedoutcast/publish-nuget@v2
+        with:
+          PROJECT_FILE_PATH: StellaNowSDK/StellaNowSDK.csproj
+          NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
+          TAG_COMMIT: true
+          TAG_FORMAT: v*
