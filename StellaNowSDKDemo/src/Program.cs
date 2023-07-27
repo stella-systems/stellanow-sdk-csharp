@@ -58,6 +58,7 @@ internal class Program
             var message = new UserLoginMessage(
                 uuid,
                 DateTime.UtcNow,
+                2,
                 uuid
             );
 
