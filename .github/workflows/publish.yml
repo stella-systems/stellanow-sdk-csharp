@@ -15,7 +15,7 @@ jobs:
         with:
           dotnet-version: 6.0.x
       - name: Build
-        run: dotnet build StellaNowSDK/StellaNowSDK.sln --configuration Release --no-restore
+        run: dotnet build StellaNowSDK.sln --configuration Release --no-restore
       - name: Publish to NuGet
         uses: brandedoutcast/publish-nuget@v2
         with:
