@@ -57,9 +57,9 @@ internal class Program
         {
             var message = new UserLoginMessage(
                 uuid,
+                uuid,
                 DateTime.UtcNow,
-                2,
-                uuid
+                2
             );
 
             // Send the message
@@ -103,11 +103,11 @@ internal class Program
             StellaNowEnvironment.Integration,
             new StellaNowConfig
             {
-                ApiKey = "username10@some.domain",
-                ApiSecret = "1234567890",
+                ApiKey = "<YOUR-API-KEY>",
+                ApiSecret = "<YOUR-API-SECRET>",
                 ClientId = "StellaNowSDK",
-                OrganizationId = "e24f2940-04b0-493b-a28c-d809b2399382",
-                ProjectId = "9e9f347a-b7e8-4221-a7b3-05111b3eb40e"
+                OrganizationId = "<YOUR-ORGANIZATION-UUID>",
+                ProjectId = "<YOUR-PROJECT-UUID>"
             }
         );
 
