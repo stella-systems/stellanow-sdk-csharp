@@ -1,3 +1,5 @@
+[![Build and Publish to NuGet](https://github.com/stella-systems/stellanow-sdk-csharp/actions/workflows/publish.yml/badge.svg)](https://github.com/stella-systems/stellanow-sdk-csharp/actions/workflows/publish.yml)
+
 # StellaNowSDK
 ## Introduction
 Welcome to the StellaNow C# SDK. This SDK is designed to provide an easy-to-use interface for developers integrating their C# applications with the StellaNow Platform. The SDK communicates with the StellaNow Platform using the MQTT protocol over secure WebSockets.

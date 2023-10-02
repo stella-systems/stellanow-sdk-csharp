@@ -30,7 +30,7 @@ namespace StellaNowSDKDemo;
 
 internal class Program
 {
-    private const int MessageCount = 1;
+    private static CancellationTokenSource _cts = new CancellationTokenSource();
     
     private static IServiceProvider? _serviceProvider;
     private readonly ILogger<Program> _logger;
@@ -42,24 +42,32 @@ internal class Program
         _logger = logger;
     }
 
-    private async Task RunAsync()
+    private async Task RunAsync(int? messageCount)
     {
         // Establish connection
         await _stellaSdk.StartAsync();
 
+        _logger.LogInformation("Press 'ENTER' to stop the application!");
+        
         // Ensure connection is established
         await Task.Delay(TimeSpan.FromSeconds(5));
 
         var uuid = Guid.NewGuid().ToString();
-        
-        // Send 5 messages
-        for (int i = 0; i < MessageCount; i++)
+
+        int i = 0;
+
+        // Either send messages based on count or indefinitely
+        while (!messageCount.HasValue || i < messageCount.Value)
         {
+            if (_cts.IsCancellationRequested)
+            {
+                break; // Exit the loop if cancellation is requested
+            }
             var message = new UserLoginMessage(
                 uuid,
+                uuid,
                 DateTime.UtcNow,
-                2,
-                uuid
+                2
             );
 
             // Send the message
@@ -74,6 +82,8 @@ internal class Program
             
             // Delay between messages
             await Task.Delay(TimeSpan.FromSeconds(1));
+            
+            i++;
         }
 
         // Disconnect and terminate
@@ -103,11 +113,11 @@ internal class Program
             StellaNowEnvironment.Integration,
             new StellaNowConfig
             {
-                ApiKey = "username10@some.domain",
-                ApiSecret = "1234567890",
+                ApiKey = "<YOUR-API-KEY>",
+                ApiSecret = "<YOUR-API-SECRET>",
                 ClientId = "StellaNowSDK",
-                OrganizationId = "e24f2940-04b0-493b-a28c-d809b2399382",
-                ProjectId = "9e9f347a-b7e8-4221-a7b3-05111b3eb40e"
+                OrganizationId = "<YOUR-ORGANIZATION-UUID>",
+                ProjectId = "<YOUR-PROJECT-UUID>"
             }
         );
 
@@ -137,10 +147,23 @@ internal class Program
     
     static async Task Main(string[] args)
     {
+        int? messageCount = null;
+        if (args.Length > 0 && int.TryParse(args[0], out int count))
+        {
+            messageCount = count;
+        }
+
         RegisterServices();
 
+        // This task waits for Enter key and then cancels the message sending
+        Task.Run(() =>
+        {
+            Console.ReadLine();
+            _cts.Cancel();
+        });
+
         var program = _serviceProvider?.GetRequiredService<Program>();
-        await program?.RunAsync()!;
+        await program?.RunAsync(messageCount)!;
 
         DisposeServices();
     }

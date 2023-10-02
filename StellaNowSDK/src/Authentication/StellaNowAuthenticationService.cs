@@ -70,7 +70,7 @@ public class StellaNowAuthenticationService
             username = _config.ApiKey,
             email = _config.ApiKey,
             password = _config.ApiSecret,
-            client_id = "backoffice"
+            client_id = StellaNowConfig.OidcClient
         };
 
         var httpClient = new HttpClient();
