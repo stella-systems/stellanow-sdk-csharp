@@ -55,7 +55,7 @@ public class StellaNowMessageWrapperTests
         var expectedMetadata = new 
         {
             MessageId = userUpdateMessage.Metadata.MessageId,
-            MessageOriginDateUtc = userUpdateMessage.Metadata.MessageOriginDateUtc,
+            MessageOriginDateUtc = userUpdateMessage.Metadata.MessageOriginDateUTC,
             EventTypeDefinitionId = "user_update",
             EntityTypeIds = userUpdateMessage.Metadata.EntityTypeIds
         };
