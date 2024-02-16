@@ -12,10 +12,10 @@ namespace StellaNowSDKDemo.Messages;
 
 public class UserLoginMessage : StellaNowMessageWrapper
 {
-    public UserLoginMessage(string patronId, DateTime timestamp, int userGroupId)
+    public UserLoginMessage(string entityId, string patronId, DateTime timestamp, int userGroupId)
         : base(
             "user_login",
-            new List<EntityType>{ new EntityType("patron", patronId) })
+            new List<EntityType>{ new EntityType("patron", entityId) })
     {
         AddField("patron_id", patronId);
         AddField("timestamp", timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"));
