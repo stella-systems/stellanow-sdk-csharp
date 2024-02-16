@@ -27,4 +27,5 @@ public record StellaNowConfig
     public string OrganizationId { get; init; }
     public string ProjectId { get; init; }
     public string ClientId { get; init; }
+    public static string OidcClient => "tools-cli";
 }
