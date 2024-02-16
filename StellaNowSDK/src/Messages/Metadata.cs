@@ -23,7 +23,7 @@ namespace StellaNowSDK.Messages;
 public class Metadata
 {
     public string? MessageId { get; set;  }
-    public DateTime MessageOriginDateUtc { get; set; }
+    public DateTime MessageOriginDateUTC { get; set; }
     public string? EventTypeDefinitionId { get; set; }
     public List<EntityType>? EntityTypeIds { get; set; }
 }
