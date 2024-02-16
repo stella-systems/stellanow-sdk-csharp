@@ -31,7 +31,7 @@ public abstract class StellaNowMessageWrapper
         Metadata = new Metadata
         {
             MessageId = Guid.NewGuid().ToString(),
-            MessageOriginDateUtc = DateTime.UtcNow,
+            MessageOriginDateUTC = DateTime.UtcNow,
             EventTypeDefinitionId = eventTypeDefinitionId,
             EntityTypeIds = entityTypeIds
         };

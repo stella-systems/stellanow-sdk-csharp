@@ -1,11 +1,11 @@
-name: Build and Publish to NuGet
+name: Create Release and Publish to NuGet
 on:
   push:
     branches:
       - master
 jobs:
   build:
-    name: Build
+    name: Release and Publish
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -15,12 +15,6 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 6.0.x
-          
-      - name: Restore Dependencies
-        run: dotnet restore StellaNowSDK.sln
-      
-      - name: Build
-        run: dotnet build StellaNowSDK.sln --configuration Release --no-restore
 
       - name: Setup Git User
         run: |
