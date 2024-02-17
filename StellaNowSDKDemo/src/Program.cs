@@ -110,14 +110,14 @@ internal class Program
 
         // Register StellaNowSdk with necessary configurations and environment.
         services.AddStellaNowSdk(
-            StellaNowEnvironment.Integration,
+            StellaNowEnvironment.Development,
             new StellaNowConfig
             {
-                ApiKey = "<YOUR-API-KEY>",
-                ApiSecret = "<YOUR-API-SECRET>",
+                ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
+                ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
                 ClientId = "StellaNowSDK",
-                OrganizationId = "<YOUR-ORGANIZATION-UUID>",
-                ProjectId = "<YOUR-PROJECT-UUID>"
+                OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+                ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
             }
         );
 

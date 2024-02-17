@@ -20,6 +20,9 @@
 
 
 using System.Text;
+using IdentityModel.Client;
+using System.Net.Http;
+
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using StellaNowSDK.Config;
@@ -31,106 +34,100 @@ public class StellaNowAuthenticationService
     private readonly ILogger<StellaNowAuthenticationService> _logger;
     private readonly StellaNowConfig _config;
     private readonly StellaNowEnvironmentConfig _envConfig;
+    private readonly HttpClient _httpClient;
+    private readonly string _discoveryDocumentUrl;
 
-    private string _accessToken = string.Empty;
-    private string _refreshToken = string.Empty;
+    private DiscoveryDocumentResponse? _discoveryDocumentResponse;
+    private TokenResponse? _tokenResponse;
 
     public StellaNowAuthenticationService(
         ILogger<StellaNowAuthenticationService> logger,
         StellaNowEnvironmentConfig envConfig,
-        StellaNowConfig config)
+        StellaNowConfig config,
+        HttpClient httpClient)
     {
         _logger = logger;
         _envConfig = envConfig;
         _config = config;
+        _httpClient = httpClient;
+        _discoveryDocumentUrl = $"{_envConfig.Authority}/realms/{_config.OrganizationId}";
     }
 
     public async Task AuthenticateAsync()
     {
-        if (string.IsNullOrEmpty(_accessToken) || string.IsNullOrEmpty(_refreshToken))
-        {
+        if (!await RefreshTokensAsync())
             await LoginAsync();
-        }
-        else
+    }
+
+    private void ValidateTokenResponse()
+    {
+        if (_tokenResponse is not null and not { IsError: true }) return;
+        
+        _logger.LogError($"Failed to authenticate: {_tokenResponse!.Error}");
+        _tokenResponse = null;
+        throw new Exception("Failed to authenticate.");
+    }
+
+    private async Task<DiscoveryDocumentResponse> GetDiscoveryDocumentResponse()
+    {
+        if (_discoveryDocumentResponse is { IsError: false })
         {
-            var refreshSucceeded = await RefreshTokensAsync();
-            
-            if (!refreshSucceeded)
-            {
-                await LoginAsync();
-            }
+            return _discoveryDocumentResponse;
         }
+        
+        _discoveryDocumentResponse = await _httpClient.GetDiscoveryDocumentAsync(_discoveryDocumentUrl);
+        
+        if (!_discoveryDocumentResponse.IsError) return _discoveryDocumentResponse;
+        
+        _logger.LogError($"Error retrieving discovery document: {_discoveryDocumentResponse.Error}");
+        _discoveryDocumentResponse = null;
+        throw new Exception("Could not retrieve discovery document");
+
     }
 
     private async Task LoginAsync()
     {
-        var loginPayload = new 
-        {
-            realm_id = _config.OrganizationId,
-            username = _config.ApiKey,
-            email = _config.ApiKey,
-            password = _config.ApiSecret,
-            client_id = StellaNowConfig.OidcClient
-        };
-
-        var httpClient = new HttpClient();
-
-        var httpResponse = await httpClient.PostAsync(
-            _envConfig.AuthUrl, 
-            new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
+        _logger?.LogInformation("Attempting to Authentication");
         
-        if (!httpResponse.IsSuccessStatusCode)
-        {
-            _logger?.LogError("Failed to Authenticate");
-            throw new Exception("Failed to authenticate.");
-        }
-    
-        var responseString = await httpResponse.Content.ReadAsStringAsync();
-        var authResponse = JsonConvert.DeserializeObject<dynamic>(responseString);
+        var discoveryDocumentResponse = await GetDiscoveryDocumentResponse();
 
-        _accessToken = authResponse.details.access_token;
-        _refreshToken = authResponse.details.refresh_token;
+        _tokenResponse = await _httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
+        {
+            Address = discoveryDocumentResponse.TokenEndpoint,
+            ClientId = StellaNowConfig.OidcClient,
+            UserName = _config.ApiKey,
+            Password = _config.ApiSecret,
+        });
+
+        ValidateTokenResponse();
     
         _logger?.LogInformation("Authentication Successful");
     }
 
     private async Task<bool> RefreshTokensAsync()
     {
-        _logger?.LogWarning("Attempting Token Refresh");
+        _logger?.LogInformation("Attempting Token Refresh");
+
+        if (_tokenResponse is null or { IsError: true }) return false;
         
-        var httpClient = new HttpClient();
+        var discoveryDocumentResponse = await GetDiscoveryDocumentResponse();
 
-        var refreshPayload = new 
+        _tokenResponse = await _httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
         {
-            refresh_token = _refreshToken
-        };
+            Address = discoveryDocumentResponse.TokenEndpoint,
+            ClientId = StellaNowConfig.OidcClient,
+            RefreshToken = _tokenResponse!.RefreshToken!
+        });
 
-        _accessToken = string.Empty;
-        _refreshToken = string.Empty;
-        
-        var httpResponse = await httpClient.PostAsync(
-            _envConfig.AuthRefreshUrl, 
-            new StringContent(JsonConvert.SerializeObject(refreshPayload), Encoding.UTF8, "application/json"));
-
-        if (!httpResponse.IsSuccessStatusCode)
-        {
-            _logger?.LogWarning("Token refresh failed");
-            return false;
-        }
-    
-        var responseString = await httpResponse.Content.ReadAsStringAsync();
-        var refreshResponse = JsonConvert.DeserializeObject<dynamic>(responseString);
-
-        _accessToken = refreshResponse.details.access_token;
-        _refreshToken = refreshResponse.details.refresh_token;
+        ValidateTokenResponse();
     
         _logger?.LogInformation("Token refresh successful");
         
         return true;
     }
 
-    public string GetAccessToken()
+    public string? GetAccessToken()
     {
-        return _accessToken;
+        return _tokenResponse?.AccessToken;
     }
 }

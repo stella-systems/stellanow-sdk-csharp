@@ -48,6 +48,7 @@ public static class StellaNowExtensions
         services.AddSingleton(config);
         
         services.AddSingleton<ILogger<StellaNowSdk>, Logger<StellaNowSdk>>();
+        services.AddHttpClient();
         services.AddSingleton<StellaNowAuthenticationService>();
         services.AddSingleton<ILogger<StellaNowMessageQueue>, Logger<StellaNowMessageQueue>>();
         services.AddSingleton<ILogger<StellaNowMqttWebSocketStrategy>, Logger<StellaNowMqttWebSocketStrategy>>();
