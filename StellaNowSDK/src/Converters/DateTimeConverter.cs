@@ -18,20 +18,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Messages;
+using Newtonsoft.Json;
+using System.Globalization;
 
-namespace StellaNowSdkTests.TestUtilities;
+namespace StellaNowSDK.Converters;
 
-public class UserUpdateMessage : StellaNowMessageWrapper
+
+public class DateTimeConverter : JsonConverter<DateTime>
 {
-    public UserUpdateMessage(string punterId, string firstName, string lastName, string dob, string email) 
-        : base(
-            "user_update", 
-            new List<EntityType>{new EntityType("punter", punterId)})
+    private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
+
+    public override void WriteJson(JsonWriter writer, DateTime value, JsonSerializer serializer)
     {
-        // AddField("firstName", firstName);
-        // AddField("lastName", lastName);
-        // AddField("dob", dob);
-        // AddField("email", email);
+        writer.WriteValue(value.ToUniversalTime().ToString(DateTimeFormat, CultureInfo.InvariantCulture));
+    }
+
+    public override DateTime ReadJson(JsonReader reader, Type objectType, DateTime existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        var s = (string)reader.Value!;
+        return DateTime.ParseExact(s, DateTimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
     }
 }

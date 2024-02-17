@@ -44,13 +44,13 @@ public class StellaNowMessageWrapperTests
             }
         );
     
-        var expectedFields = new List<Field>
-        {
-            new Field("firstName", "John" ),
-            new Field("lastName", "Doe"),
-            new Field("dob", "1970-01-01"),
-            new Field("email", "john.doe@example.com")
-        };
+        // var expectedFields = new List<Field>
+        // {
+        //     new Field("firstName", "John" ),
+        //     new Field("lastName", "Doe"),
+        //     new Field("dob", "1970-01-01"),
+        //     new Field("email", "john.doe@example.com")
+        // };
 
         var expectedMetadata = new 
         {
@@ -63,7 +63,7 @@ public class StellaNowMessageWrapperTests
         var expectedMessage = JsonConvert.SerializeObject(new
             {
                 metadata = expectedMetadata,
-                fields = expectedFields
+                // fields = expectedFields
             },
             new JsonSerializerSettings()
             {

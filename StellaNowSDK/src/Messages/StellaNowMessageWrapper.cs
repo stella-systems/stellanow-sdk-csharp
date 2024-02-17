@@ -18,14 +18,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
+using System.Collections.Generic;
+using StellaNowSDK.Converters;
+
 namespace StellaNowSDK.Messages;
 
 public abstract class StellaNowMessageWrapper
 {
     public Metadata Metadata { get; }
+    public string Payload { get; private set; }
     
-    public List<Field> Fields { get; }
-    
+    private static readonly JsonSerializerSettings SerializationSettings = new JsonSerializerSettings
+    {
+        DateFormatString = "yyyy-MM-ddTHH:mm:ss.ffffffZ",
+        Converters = new List<JsonConverter>
+        {
+            new DateTimeConverter(),
+            new DateConverter(),
+            new BooleanConverter(),
+            new DecimalConverter()
+        }
+    };
+
     protected StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds)
     {
         Metadata = new Metadata
@@ -35,12 +52,13 @@ public abstract class StellaNowMessageWrapper
             EventTypeDefinitionId = eventTypeDefinitionId,
             EntityTypeIds = entityTypeIds
         };
-        
-        Fields = new List<Field>();
+
+        // Initialize Payload as an empty JSON object to ensure it's never null.
+        Payload = "{}";
     }
-    
-    protected void AddField(string name, string value)
+
+    protected void CreatePayload(object payloadObject)
     {
-        Fields.Add(new Field(name, value));
+        Payload = JsonConvert.SerializeObject(payloadObject, SerializationSettings);
     }
 }

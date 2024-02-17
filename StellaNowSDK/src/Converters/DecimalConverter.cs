@@ -18,20 +18,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Messages;
+using Newtonsoft.Json;
+using System.Globalization;
 
-namespace StellaNowSdkTests.TestUtilities;
+namespace StellaNowSDK.Converters;
 
-public class UserUpdateMessage : StellaNowMessageWrapper
+
+public class DecimalConverter : JsonConverter<decimal>
 {
-    public UserUpdateMessage(string punterId, string firstName, string lastName, string dob, string email) 
-        : base(
-            "user_update", 
-            new List<EntityType>{new EntityType("punter", punterId)})
+    public override void WriteJson(JsonWriter writer, decimal value, JsonSerializer serializer)
     {
-        // AddField("firstName", firstName);
-        // AddField("lastName", lastName);
-        // AddField("dob", dob);
-        // AddField("email", email);
+        // Format the decimal value as a string with 2 decimal places
+        writer.WriteValue(value.ToString("F2", CultureInfo.InvariantCulture));
+    }
+
+    public override decimal ReadJson(JsonReader reader, Type objectType, decimal existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        // Attempt to parse the decimal value from the reader
+        var strValue = (string)reader.Value!;
+        if (decimal.TryParse(strValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
+        {
+            return result;
+        }
+        throw new JsonSerializationException($"Error parsing '{strValue}' as decimal.");
     }
 }

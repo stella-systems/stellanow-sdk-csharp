@@ -6,6 +6,8 @@
  */
 
 using System.Globalization;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using StellaNowSDK.Messages;
 
 namespace StellaNowSDKDemo.Messages;
@@ -17,11 +19,25 @@ public class UserLoginMessage : StellaNowMessageWrapper
             "user_login",
             new List<EntityType>{ new EntityType("patron", entityId) })
     {
-        AddField("patron_id", patronId);
-        AddField("timestamp", timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"));
-        AddField("user_group_id", userGroupId.ToString());
+        var payloadObject = new
+        {
+            patron_id = patronId,
+            timestamp = timestamp,
+            user_group_id = userGroupId
+        };
+
+        CreatePayload(payloadObject);
     }
 }
+
+// public record MessagePayloadBase(string EventTypeDefinitionId, List<EntityType> EntityTypeIds);
+//
+// public record UserLoginMessagePayload(
+//     [property: Newtonsoft.Json.JsonIgnore] string EntityId, 
+//     [property: JsonPropertyName("patron_id")] string PatronId, 
+//     [property: JsonPropertyName("timestamp")] DateTime Timestamp, 
+//     [property: JsonPropertyName("user_group_id")] int UserGroupId
+//     ) : MessagePayloadBase("user_login", new List<EntityType>{ new EntityType("patron", EntityId) });
 
 /*
 Generated from:
