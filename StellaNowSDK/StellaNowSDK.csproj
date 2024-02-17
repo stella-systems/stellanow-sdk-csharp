@@ -11,7 +11,7 @@
         <PackageIcon>stella-orange-square.png</PackageIcon>
         <PackageId>StellaNowSDK</PackageId>
         <Description>Welcome to the StellaNow C# SDK. This SDK is designed to provide an easy-to-use interface for developers integrating their C# applications with the StellaNow Platform. The SDK communicates with the StellaNow Platform using the MQTT protocol over secure WebSockets.</Description>
-        <Copyright>2022-2023 Stella Technologies (UK) Limited</Copyright>
+        <Copyright>2022-2024 Stella Technologies (UK) Limited</Copyright>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/stella-systems/stellanow-sdk-csharp</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
