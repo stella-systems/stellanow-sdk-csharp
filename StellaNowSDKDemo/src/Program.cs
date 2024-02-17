@@ -21,7 +21,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
-using StellaNowSDK.Enums;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Services;
 using StellaNowSDKDemo.Messages;
@@ -110,8 +109,8 @@ internal class Program
 
         // Register StellaNowSdk with necessary configurations and environment.
         services.AddStellaNowSdk(
-            StellaNowEnvironment.Development,
-            new StellaNowConfig
+            new StellaNowDevEnvironmentConfig(),
+            new StellaNowCredentials
             {
                 ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
                 ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,

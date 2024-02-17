@@ -23,7 +23,6 @@ using Microsoft.Extensions.Logging;
 using StellaNowSDK.Authentication;
 using StellaNowSDK.Config;
 using StellaNowSDK.ConnectionStrategies;
-using StellaNowSDK.Enums;
 using StellaNowSDK.Queue;
 
 namespace StellaNowSDK.Services;
@@ -32,20 +31,12 @@ public static class StellaNowExtensions
 {
     public static IServiceCollection AddStellaNowSdk(
         this IServiceCollection services,
-        StellaNowEnvironment environment, 
-        StellaNowConfig config)
+        StellaNowEnvironmentConfig environmentConfig, 
+        StellaNowCredentials credentials)
     {
-        switch (environment)
-        {
-            case StellaNowEnvironment.Development:
-                services.AddSingleton<StellaNowEnvironmentConfig, StellaNowDevEnvironmentConfig>();
-                break;
-            case StellaNowEnvironment.Integration:
-                services.AddSingleton<StellaNowEnvironmentConfig, StellaNowIntEnvironmentConfig>();
-                break;
-        }
 
-        services.AddSingleton(config);
+        services.AddSingleton(environmentConfig);
+        services.AddSingleton(credentials);
         
         services.AddSingleton<ILogger<StellaNowSdk>, Logger<StellaNowSdk>>();
         services.AddHttpClient();

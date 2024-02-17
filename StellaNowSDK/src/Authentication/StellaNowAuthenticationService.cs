@@ -32,7 +32,7 @@ namespace StellaNowSDK.Authentication;
 public class StellaNowAuthenticationService
 {
     private readonly ILogger<StellaNowAuthenticationService> _logger;
-    private readonly StellaNowConfig _config;
+    private readonly StellaNowCredentials _credentials;
     private readonly StellaNowEnvironmentConfig _envConfig;
     private readonly HttpClient _httpClient;
     private readonly string _discoveryDocumentUrl;
@@ -43,14 +43,14 @@ public class StellaNowAuthenticationService
     public StellaNowAuthenticationService(
         ILogger<StellaNowAuthenticationService> logger,
         StellaNowEnvironmentConfig envConfig,
-        StellaNowConfig config,
+        StellaNowCredentials credentials,
         HttpClient httpClient)
     {
         _logger = logger;
         _envConfig = envConfig;
-        _config = config;
+        _credentials = credentials;
         _httpClient = httpClient;
-        _discoveryDocumentUrl = $"{_envConfig.Authority}/realms/{_config.OrganizationId}";
+        _discoveryDocumentUrl = $"{_envConfig.Authority}/realms/{_credentials.OrganizationId}";
     }
 
     public async Task AuthenticateAsync()
@@ -94,9 +94,9 @@ public class StellaNowAuthenticationService
         _tokenResponse = await _httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
         {
             Address = discoveryDocumentResponse.TokenEndpoint,
-            ClientId = StellaNowConfig.OidcClient,
-            UserName = _config.ApiKey,
-            Password = _config.ApiSecret,
+            ClientId = StellaNowCredentials.OidcClient,
+            UserName = _credentials.ApiKey,
+            Password = _credentials.ApiSecret,
         });
 
         ValidateTokenResponse();
@@ -115,7 +115,7 @@ public class StellaNowAuthenticationService
         _tokenResponse = await _httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
         {
             Address = discoveryDocumentResponse.TokenEndpoint,
-            ClientId = StellaNowConfig.OidcClient,
+            ClientId = StellaNowCredentials.OidcClient,
             RefreshToken = _tokenResponse!.RefreshToken!
         });
 

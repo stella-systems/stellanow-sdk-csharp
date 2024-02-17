@@ -38,7 +38,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
 
     private readonly StellaNowAuthenticationService _authService;
 
-    private readonly StellaNowConfig _config;
+    private readonly StellaNowCredentials _credentials;
     private readonly StellaNowEnvironmentConfig _envConfig; 
     
     private readonly string _topic;
@@ -54,14 +54,14 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
         ILogger<StellaNowMqttWebSocketStrategy>? logger,
         StellaNowAuthenticationService authService,
         StellaNowEnvironmentConfig envConfig,
-        StellaNowConfig config)
+        StellaNowCredentials credentials)
     {
         _logger = logger;
         _authService = authService;
-        _config = config;
+        _credentials = credentials;
         _envConfig = envConfig;
             
-        _topic = "in/" + _config.OrganizationId;
+        _topic = "in/" + _credentials.OrganizationId;
         
         var factory = new MqttFactory();
         _mqttClient = factory.CreateMqttClient();
@@ -125,7 +125,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
         await _authService.AuthenticateAsync();
         
         var options = new MqttClientOptionsBuilder()
-            .WithClientId(_config.ClientId)
+            .WithClientId(_credentials.ClientId)
             .WithWebSocketServer(_envConfig.BrokerUrl)
             .WithTls()
             .WithCredentials(_authService.GetAccessToken(), _authService.GetAccessToken())

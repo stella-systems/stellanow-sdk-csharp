@@ -50,7 +50,7 @@ namespace StellaNowSdkTests.Services
                 null, // pass null for the logger for simplicity
                 _mockConnectionStrategy.Object, 
                 _mockMessageQueue.Object, 
-                new StellaNowConfig() // use default configuration
+                new StellaNowCredentials() // use default configuration
             );
         }
 

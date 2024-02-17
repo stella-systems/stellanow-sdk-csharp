@@ -31,7 +31,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
 {
     private readonly ILogger<IStellaNowSdk>? _logger;
 
-    private readonly StellaNowConfig _config;
+    private readonly StellaNowCredentials _credentials;
     
     private readonly IStellaNowConnectionStrategy _connectionStrategy;
     private readonly IStellaNowMessageQueue _messageQueue;
@@ -45,11 +45,11 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         ILogger<StellaNowSdk>? logger,
         IStellaNowConnectionStrategy connectionStrategy, 
         IStellaNowMessageQueue messageQueue,
-        StellaNowConfig config)
+        StellaNowCredentials credentials)
     {
         _logger = logger;
         _connectionStrategy = connectionStrategy;
-        _config = config;
+        _credentials = credentials;
         _messageQueue = messageQueue;
         
         _connectionStrategy.ConnectedAsync += OnConnectedAsync;
@@ -92,7 +92,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     {
         _messageQueue.EnqueueMessage(
             new StellaNowEventWrapper(
-                new EventKey(_config.OrganizationId, _config.ProjectId),
+                new EventKey(_credentials.OrganizationId, _credentials.ProjectId),
                 message,
                 callback)
         );

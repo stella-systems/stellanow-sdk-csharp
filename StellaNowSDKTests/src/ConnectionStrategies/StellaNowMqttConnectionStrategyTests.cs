@@ -22,7 +22,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StellaNowSDK.Config;
-using StellaNowSDK.Enums;
 using StellaNowSDK.Services;
 using StellaNowSdkTests.TestUtilities;
 
@@ -49,8 +48,8 @@ public class StellaNowMqttConnectionStrategyTests
         });
         
         services.AddStellaNowSdk(
-            StellaNowEnvironment.Development,
-            new StellaNowConfig()
+            new StellaNowDevEnvironmentConfig(),
+            new StellaNowCredentials()
             {
                 ApiKey = "username10@some.domain",
                 ApiSecret = "1234567890",
