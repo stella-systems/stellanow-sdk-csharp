@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+﻿// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
-using StellaNowSDK.Enums;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Services;
 using StellaNowSDKDemo.Messages;
@@ -63,7 +62,7 @@ internal class Program
             {
                 break; // Exit the loop if cancellation is requested
             }
-            var message = new UserLoginMessage(
+            var message = new UserLoginStellaNowMessage(
                 uuid,
                 uuid,
                 DateTime.UtcNow,
@@ -110,14 +109,14 @@ internal class Program
 
         // Register StellaNowSdk with necessary configurations and environment.
         services.AddStellaNowSdk(
-            StellaNowEnvironment.Integration,
-            new StellaNowConfig
+            new StellaNowDevEnvironmentConfig(),
+            new StellaNowCredentials
             {
-                ApiKey = "<YOUR-API-KEY>",
-                ApiSecret = "<YOUR-API-SECRET>",
+                ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
+                ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
                 ClientId = "StellaNowSDK",
-                OrganizationId = "<YOUR-ORGANIZATION-UUID>",
-                ProjectId = "<YOUR-PROJECT-UUID>"
+                OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+                ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
             }
         );
 

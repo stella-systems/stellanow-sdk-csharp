@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,20 +18,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+using Newtonsoft.Json;
 using StellaNowSDK.Messages;
 
 namespace StellaNowSdkTests.TestUtilities;
 
-public class UserUpdateMessage : StellaNowMessageWrapper
-{
-    public UserUpdateMessage(string punterId, string firstName, string lastName, string dob, string email) 
-        : base(
-            "user_update", 
-            new List<EntityType>{new EntityType("punter", punterId)})
-    {
-        AddField("firstName", firstName);
-        AddField("lastName", lastName);
-        AddField("dob", dob);
-        AddField("email", email);
-    }
-}
+public record UserUpdateMessage(
+    [property: JsonIgnore] string PunterId,
+    [property: JsonProperty("firstName")] string FirstName, 
+    [property: JsonProperty("lastName")] string LastName, 
+    [property: JsonProperty("dob")] string Dob, 
+    [property: JsonProperty("email")] string Email
+) : StellaNowMessageBase("user_update", new List<EntityType> { new EntityType("punter", PunterId) });

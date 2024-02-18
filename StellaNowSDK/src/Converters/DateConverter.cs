@@ -18,6 +18,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Messages;
+using Newtonsoft.Json;
+using System.Globalization;
 
-public record EntityType (string EntityTypeDefinitionId, string EntityId);
+namespace StellaNowSDK.Converters;
+
+
+public class DateConverter : JsonConverter<DateOnly>
+{
+    private const string DateFormat = "yyyy-MM-dd";
+
+    public override void WriteJson(JsonWriter writer, DateOnly value, JsonSerializer serializer)
+    {
+        writer.WriteValue(value.ToString(DateFormat, CultureInfo.InvariantCulture));
+    }
+
+    public override DateOnly ReadJson(JsonReader reader, Type objectType, DateOnly existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        var s = (string)reader.Value!;
+        return DateOnly.ParseExact(s, DateFormat, CultureInfo.InvariantCulture);
+    }
+}

@@ -1,4 +1,6 @@
 [![Build and Publish to NuGet](https://github.com/stella-systems/stellanow-sdk-csharp/actions/workflows/publish.yml/badge.svg)](https://github.com/stella-systems/stellanow-sdk-csharp/actions/workflows/publish.yml)
+![NuGet](https://img.shields.io/nuget/v/StellaNowSDK.svg?style=flat-square)
+![NuGet Downloads](https://img.shields.io/nuget/dt/StellaNowSDK.svg?style=flat-square)
 
 # StellaNowSDK
 ## Introduction
@@ -16,29 +18,38 @@ Welcome to the StellaNow C# SDK. This SDK is designed to provide an easy-to-use 
 Before you start integrating the SDK, ensure you have a Stella Now account and valid API credentials which include **OrganizationId**, **ApiKey**, and **ApiSecret**.
 
 ## Installation
-To install the SDK in your project:
-* Clone the StellaNowSDK GitHub repository.
-* Build the SDK.
-* Add the built .dll file as a reference to your project.
+To integrate the StellaNowSDK into your project, follow these steps:
+
+### Via NuGet Package Manager
+The easiest way to add the StellaNowSDK to your project is through NuGet. You can do so directly within your project's development environment (like Visual Studio) using the NuGet Package Manager.
+
+Search for `StellaNowSDK` and install it by following your environment's standard installation process.
+
+### Via .NET CLI
+Alternatively, you can use the .NET Core command-line interface (CLI) to add the StellaNowSDK package to your project. Run the following command in your terminal:
+
+```bash
+dotnet add package StellaNowSDK
+```
 
 ## Configuration
 You will need to provide necessary credentials to interact with the Stella Now platform:
 
 ```csharp
 services.AddStellaNowSdk(
-    StellaNowEnvironment.Integrations,
-    new StellaNowConfig
+    new StellaNowDevEnvironmentConfig(),
+    new StellaNowCredentials
     {
-        ApiKey = "<Your-API-Key>",
-        ApiSecret = "<Your-API-Secret>",
-        ClientId = "<Your-Client-ID>",
-        OrganizationId = "<Your-Organization-ID>",
-        ProjectId = "<Your-Project-ID>"
+        ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
+        ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
+        ClientId = "StellaNowSDK",
+        OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+        ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
     }
 );
 ```
 
-Replace `<Your-API-Key>`, `<Your-API-Secret>`, `<Your-Client-ID>`, `<Your-Organization-ID>`, and `<Your-Project-ID>` with your respective Stella Now credentials.
+Ensure you have set the appropriate environment variables.
 
 > **Note:**  Please note that the `ClientId` used in the `StellaNowConfig` needs to be unique per connection. If two connections use the same `ClientId`, then the first connection will be dropped. Always ensure that the `ClientId` is unique for each connection your application makes.
 
@@ -54,25 +65,32 @@ The `RunAsync` function does a few things:
 * Finally, it disconnects from StellaNow and disposes of the services.
 
 ```csharp
-private async Task RunAsync()
+private async Task RunAsync(int? messageCount)
 {
     // Establish connection
     await _stellaSdk.StartAsync();
 
+    _logger.LogInformation("Press 'ENTER' to stop the application!");
+    
     // Ensure connection is established
     await Task.Delay(TimeSpan.FromSeconds(5));
 
-    // var uuid = Guid.NewGuid().ToString();
-    var uuid = "8fbdae3b-035f-4b65-977f-a1a4551cbb76";
-    
-    // Send 5 messages
-    for (int i = 0; i < MessageCount; i++)
+    var uuid = Guid.NewGuid().ToString();
+
+    int i = 0;
+
+    // Either send messages based on count or indefinitely
+    while (!messageCount.HasValue || i < messageCount.Value)
     {
-        var message = new UserLoginMessage(
+        if (_cts.IsCancellationRequested)
+        {
+            break; // Exit the loop if cancellation is requested
+        }
+        var message = new UserLoginStellaNowMessage(
+            uuid,
             uuid,
             DateTime.UtcNow,
-            2,
-            uuid
+            2
         );
 
         // Send the message
@@ -87,6 +105,8 @@ private async Task RunAsync()
         
         // Delay between messages
         await Task.Delay(TimeSpan.FromSeconds(1));
+        
+        i++;
     }
 
     // Disconnect and terminate
@@ -119,14 +139,14 @@ private static void RegisterServices()
 
     // Register StellaNowSdk with necessary configurations and environment.
     services.AddStellaNowSdk(
-        StellaNowEnvironment.Integration,
-        new StellaNowConfig
+        new StellaNowDevEnvironmentConfig(),
+        new StellaNowCredentials
         {
-            ApiKey = <YOUR_API_KEY>,
-            ApiSecret = <YOUR_API_SECRET>,
-            ClientId = <UNIQUE_CLIENT_IDENTIFIER>,
-            OrganizationId = <YOUR_ORGANIZATION_UUID>,
-            ProjectId = <YOUR_PROJECT_UUID>
+            ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
+            ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
+            ClientId = "StellaNowSDK",
+            OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+            ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
         }
     );
 
@@ -184,17 +204,12 @@ The full code for sample applications can be found here:
 Messages in StellaNowSDK are wrapped in a `StellaNowMessageWrapper` and each specific message type extends this class to define its own properties. Each message needs to follow a certain format, including a type, list of entities, and optional fields. Here is an example:
 
 ```csharp
-public class UserLoginMessage : StellaNowMessageWrapper
-{
-    public UserLoginMessage(string patronId, string userId, string timestamp)
-        : base(
-            "user_login",
-            new List<EntityType>{ new EntityType("patron", patronId) })
-    {
-        AddField("user_id", userId);
-        AddField("timestamp", timestamp);
-    }
-}
+public record UserLoginStellaNowMessage(
+    [property: Newtonsoft.Json.JsonIgnore] string EntityId, 
+    [property: Newtonsoft.Json.JsonProperty("patron_id")] string PatronId, 
+    [property: Newtonsoft.Json.JsonProperty("timestamp")] DateTime Timestamp, 
+    [property: Newtonsoft.Json.JsonProperty("user_group_id")] int UserGroupId
+    ) : StellaNowMessageBase("user_login", new List<EntityType>{ new EntityType("patron", EntityId) });
 ```
 
 Creating these classes by hand can be prone to errors. Therefore, we provide a command line interface (CLI) tool, **StellaNow CLI**, to automate this task. This tool generates the code for the message classes automatically based on the configuration defined in the Operators Console.

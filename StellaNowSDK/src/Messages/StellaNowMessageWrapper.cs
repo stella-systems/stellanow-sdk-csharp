@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,29 +18,48 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
+using System.Collections.Generic;
+using StellaNowSDK.Converters;
+
 namespace StellaNowSDK.Messages;
 
-public abstract class StellaNowMessageWrapper
+public class StellaNowMessageWrapper
 {
     public Metadata Metadata { get; }
+    public string Payload { get; private set; }
     
-    public List<Field> Fields { get; }
-    
-    protected StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds)
+    private static readonly JsonSerializerSettings SerializationSettings = new JsonSerializerSettings
     {
-        Metadata = new Metadata
+        Converters = new List<JsonConverter>
         {
-            MessageId = Guid.NewGuid().ToString(),
-            MessageOriginDateUTC = DateTime.UtcNow,
-            EventTypeDefinitionId = eventTypeDefinitionId,
-            EntityTypeIds = entityTypeIds
-        };
-        
-        Fields = new List<Field>();
+            new DateTimeConverter(),
+            new DateConverter(),
+            new BooleanConverter(),
+            new DecimalConverter()
+        }
+    };
+
+    public StellaNowMessageWrapper(StellaNowMessageBase stellaNowMessage)
+        : this(
+            stellaNowMessage.EventTypeDefinitionId, 
+            stellaNowMessage.EntityTypeIds, 
+            JsonConvert.SerializeObject(stellaNowMessage, SerializationSettings)
+            )
+    {
     }
     
-    protected void AddField(string name, string value)
+    public StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds, string messageJson)
     {
-        Fields.Add(new Field(name, value));
+        Metadata = new Metadata(
+            Guid.NewGuid().ToString(),
+            DateTime.UtcNow,
+            eventTypeDefinitionId,
+            entityTypeIds
+        );
+
+        Payload = messageJson;
     }
 }
