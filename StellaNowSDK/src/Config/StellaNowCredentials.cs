@@ -18,6 +18,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Messages;
+namespace StellaNowSDK.Config;
 
-public record EntityType (string EntityTypeDefinitionId, string EntityId);
+public record StellaNowCredentials
+{
+    public string ApiKey { get; init; }
+    public string ApiSecret { get; init; }
+    public string OrganizationId { get; init; }
+    public string ProjectId { get; init; }
+    public string ClientId { get; init; }
+    public static string OidcClient => "tools-cli";
+}

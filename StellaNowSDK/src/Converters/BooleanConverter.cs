@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,6 +18,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Messages;
+using Newtonsoft.Json;
 
-public record Field (string Name, string Value);
+namespace StellaNowSDK.Converters;
+
+
+public class BooleanConverter : JsonConverter<bool>
+{
+    public override void WriteJson(JsonWriter writer, bool value, JsonSerializer serializer)
+    {
+        writer.WriteValue(value ? "true" : "false");
+    }
+
+    public override bool ReadJson(JsonReader reader, Type objectType, bool existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        var strValue = (string)reader.Value!;
+        return bool.Parse(strValue);
+    }
+}

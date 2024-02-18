@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,10 +31,12 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
 {
     private readonly ILogger<IStellaNowSdk>? _logger;
 
-    private readonly StellaNowConfig _config;
+    private readonly StellaNowCredentials _credentials;
     
     private readonly IStellaNowConnectionStrategy _connectionStrategy;
     private readonly IStellaNowMessageQueue _messageQueue;
+
+    private readonly EventKey _eventKey;
     
     public event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
     public event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
@@ -45,12 +47,14 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         ILogger<StellaNowSdk>? logger,
         IStellaNowConnectionStrategy connectionStrategy, 
         IStellaNowMessageQueue messageQueue,
-        StellaNowConfig config)
+        StellaNowCredentials credentials)
     {
         _logger = logger;
         _connectionStrategy = connectionStrategy;
-        _config = config;
+        _credentials = credentials;
         _messageQueue = messageQueue;
+
+        _eventKey = new EventKey(_credentials.OrganizationId, _credentials.ProjectId);
         
         _connectionStrategy.ConnectedAsync += OnConnectedAsync;
         _connectionStrategy.DisconnectedAsync += OnDisconnectedAsync;
@@ -88,13 +92,15 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         await _connectionStrategy.StopAsync();
     }
 
+    public void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null)
+    {
+        SendMessage(new StellaNowMessageWrapper(message), callback);
+    }
+    
     public void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null)
     {
         _messageQueue.EnqueueMessage(
-            new StellaNowEventWrapper(
-                new EventKey(_config.OrganizationId, _config.ProjectId),
-                message,
-                callback)
+            new StellaNowEventWrapper(_eventKey, message, callback)
         );
     }
 

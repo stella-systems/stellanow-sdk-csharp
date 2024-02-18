@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,6 @@ namespace StellaNowSDK.Config;
 
 public class StellaNowDevEnvironmentConfig : StellaNowEnvironmentConfig
 {
-    protected override string ApiBaseUrl => "https://api.dev-aws.stella.cloud";
-    public override string BrokerUrl => "wss://ingestor.dev-aws.stella.cloud:8083/mqtt";
+    protected override string ApiBaseUrl => "https://api.dev.stella.cloud";
+    public override string BrokerUrl => "wss://ingestor.dev.stella.cloud:8083/mqtt";
 }

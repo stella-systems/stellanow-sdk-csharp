@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StellaNowSDK.Config;
-using StellaNowSDK.Enums;
 using StellaNowSDK.Services;
 using StellaNowSdkTests.TestUtilities;
 
@@ -49,14 +48,14 @@ public class StellaNowMqttConnectionStrategyTests
         });
         
         services.AddStellaNowSdk(
-            StellaNowEnvironment.Development,
-            new StellaNowConfig()
+            new StellaNowDevEnvironmentConfig(),
+            new StellaNowCredentials()
             {
-                ApiKey = "username10@some.domain",
-                ApiSecret = "1234567890",
+                ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
+                ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
                 ClientId = "StellaNowSDK",
-                OrganizationId = "23bd77b6-11c1-494d-8881-f636928ccf62",
-                ProjectId = "18d41262-07e5-4e8a-9b06-cc238d013d09"
+                OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+                ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
             }
         );
 
@@ -99,17 +98,17 @@ public class StellaNowMqttConnectionStrategyTests
         // TODO: Add verification that message was received if possible.
     }
     
-    // [TestMethod]
-    // public async Task StellaNowMqttConnectionStrategy_Disconnect()
-    // {
-    //     await _stellaSdk!.StopAsync();
-    //     
-    //     Assert.IsFalse(_stellaSdk.IsConnected);
-    // }
-    //
-    // [TestCleanup]
-    // public async Task TestCleanup()
-    // {
-    //     _serviceProvider?.Dispose();
-    // }
+    [TestMethod]
+    public async Task StellaNowMqttConnectionStrategy_Disconnect()
+    {
+        await _stellaSdk!.StopAsync();
+        
+        Assert.IsFalse(_stellaSdk.IsConnected);
+    }
+    
+    [TestCleanup]
+    public async Task TestCleanup()
+    {
+        _serviceProvider?.Dispose();
+    }
 }
