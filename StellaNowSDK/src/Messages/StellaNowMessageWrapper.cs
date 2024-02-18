@@ -26,14 +26,13 @@ using StellaNowSDK.Converters;
 
 namespace StellaNowSDK.Messages;
 
-public abstract class StellaNowMessageWrapper
+public class StellaNowMessageWrapper
 {
     public Metadata Metadata { get; }
     public string Payload { get; private set; }
     
     private static readonly JsonSerializerSettings SerializationSettings = new JsonSerializerSettings
     {
-        DateFormatString = "yyyy-MM-ddTHH:mm:ss.ffffffZ",
         Converters = new List<JsonConverter>
         {
             new DateTimeConverter(),
@@ -43,22 +42,24 @@ public abstract class StellaNowMessageWrapper
         }
     };
 
-    protected StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds)
+    public StellaNowMessageWrapper(StellaNowMessageBase stellaNowMessage)
+        : this(
+            stellaNowMessage.EventTypeDefinitionId, 
+            stellaNowMessage.EntityTypeIds, 
+            JsonConvert.SerializeObject(stellaNowMessage, SerializationSettings)
+            )
     {
-        Metadata = new Metadata
-        {
-            MessageId = Guid.NewGuid().ToString(),
-            MessageOriginDateUTC = DateTime.UtcNow,
-            EventTypeDefinitionId = eventTypeDefinitionId,
-            EntityTypeIds = entityTypeIds
-        };
-
-        // Initialize Payload as an empty JSON object to ensure it's never null.
-        Payload = "{}";
     }
-
-    protected void CreatePayload(object payloadObject)
+    
+    public StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds, string messageJson)
     {
-        Payload = JsonConvert.SerializeObject(payloadObject, SerializationSettings);
+        Metadata = new Metadata(
+            Guid.NewGuid().ToString(),
+            DateTime.UtcNow,
+            eventTypeDefinitionId,
+            entityTypeIds
+        );
+
+        Payload = messageJson;
     }
 }

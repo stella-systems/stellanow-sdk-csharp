@@ -62,7 +62,7 @@ internal class Program
             {
                 break; // Exit the loop if cancellation is requested
             }
-            var message = new UserLoginMessage(
+            var message = new UserLoginStellaNowMessage(
                 uuid,
                 uuid,
                 DateTime.UtcNow,

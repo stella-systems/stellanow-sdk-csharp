@@ -51,11 +51,11 @@ public class StellaNowMqttConnectionStrategyTests
             new StellaNowDevEnvironmentConfig(),
             new StellaNowCredentials()
             {
-                ApiKey = "username10@some.domain",
-                ApiSecret = "1234567890",
+                ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
+                ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
                 ClientId = "StellaNowSDK",
-                OrganizationId = "23bd77b6-11c1-494d-8881-f636928ccf62",
-                ProjectId = "18d41262-07e5-4e8a-9b06-cc238d013d09"
+                OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+                ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
             }
         );
 
@@ -98,17 +98,17 @@ public class StellaNowMqttConnectionStrategyTests
         // TODO: Add verification that message was received if possible.
     }
     
-    // [TestMethod]
-    // public async Task StellaNowMqttConnectionStrategy_Disconnect()
-    // {
-    //     await _stellaSdk!.StopAsync();
-    //     
-    //     Assert.IsFalse(_stellaSdk.IsConnected);
-    // }
-    //
-    // [TestCleanup]
-    // public async Task TestCleanup()
-    // {
-    //     _serviceProvider?.Dispose();
-    // }
+    [TestMethod]
+    public async Task StellaNowMqttConnectionStrategy_Disconnect()
+    {
+        await _stellaSdk!.StopAsync();
+        
+        Assert.IsFalse(_stellaSdk.IsConnected);
+    }
+    
+    [TestCleanup]
+    public async Task TestCleanup()
+    {
+        _serviceProvider?.Dispose();
+    }
 }

@@ -18,24 +18,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
-using StellaNowSDK.Types;
 
-namespace StellaNowSDK.Services;
+namespace StellaNowSDKDemo.Messages;
 
-public interface IStellaNowSdk
-{
-    bool IsConnected { get; }
-
-    event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
-    event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
-
-    Task StartAsync();
-    Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null);
-    void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null);
-    void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null);
-
-    bool HasMessagesPendingForDispatch();
-    int MessagesPendingForDispatchCount();
-}
+public record UserLoginStellaNowMessage(
+    [property: Newtonsoft.Json.JsonIgnore] string EntityId, 
+    [property: Newtonsoft.Json.JsonProperty("patron_id")] string PatronId, 
+    [property: Newtonsoft.Json.JsonProperty("timestamp")] DateTime Timestamp, 
+    [property: Newtonsoft.Json.JsonProperty("user_group_id")] int UserGroupId
+    ) : StellaNowMessageBase("user_login", new List<EntityType>{ new EntityType("patron", EntityId) });

@@ -18,24 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Events;
-using StellaNowSDK.Messages;
-using StellaNowSDK.Types;
+namespace StellaNowSDK.Messages;
 
-namespace StellaNowSDK.Services;
-
-public interface IStellaNowSdk
-{
-    bool IsConnected { get; }
-
-    event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
-    event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
-
-    Task StartAsync();
-    Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null);
-    void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null);
-    void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null);
-
-    bool HasMessagesPendingForDispatch();
-    int MessagesPendingForDispatchCount();
-}
+public record StellaNowMessageBase(
+    [property: Newtonsoft.Json.JsonIgnore] string EventTypeDefinitionId, 
+    [property: Newtonsoft.Json.JsonIgnore] List<EntityType> EntityTypeIds
+    );

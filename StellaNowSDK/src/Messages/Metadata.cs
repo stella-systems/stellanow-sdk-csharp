@@ -20,10 +20,9 @@
 
 namespace StellaNowSDK.Messages;
 
-public class Metadata
-{
-    public string? MessageId { get; set;  }
-    public DateTime MessageOriginDateUTC { get; set; }
-    public string? EventTypeDefinitionId { get; set; }
-    public List<EntityType>? EntityTypeIds { get; set; }
-}
+public record Metadata(
+    string MessageId,
+    DateTime MessageOriginDateUTC,
+    string EventTypeDefinitionId,
+    List<EntityType>? EntityTypeIds
+    );

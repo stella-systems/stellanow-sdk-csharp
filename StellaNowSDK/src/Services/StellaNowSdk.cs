@@ -35,6 +35,8 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     
     private readonly IStellaNowConnectionStrategy _connectionStrategy;
     private readonly IStellaNowMessageQueue _messageQueue;
+
+    private readonly EventKey _eventKey;
     
     public event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
     public event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
@@ -51,6 +53,8 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         _connectionStrategy = connectionStrategy;
         _credentials = credentials;
         _messageQueue = messageQueue;
+
+        _eventKey = new EventKey(_credentials.OrganizationId, _credentials.ProjectId);
         
         _connectionStrategy.ConnectedAsync += OnConnectedAsync;
         _connectionStrategy.DisconnectedAsync += OnDisconnectedAsync;
@@ -88,13 +92,15 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         await _connectionStrategy.StopAsync();
     }
 
+    public void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null)
+    {
+        SendMessage(new StellaNowMessageWrapper(message), callback);
+    }
+    
     public void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null)
     {
         _messageQueue.EnqueueMessage(
-            new StellaNowEventWrapper(
-                new EventKey(_credentials.OrganizationId, _credentials.ProjectId),
-                message,
-                callback)
+            new StellaNowEventWrapper(_eventKey, message, callback)
         );
     }
 

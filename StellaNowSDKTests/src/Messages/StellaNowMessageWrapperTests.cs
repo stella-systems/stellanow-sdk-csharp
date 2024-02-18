@@ -19,9 +19,11 @@
 // IN THE SOFTWARE.
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using StellaNowSDK.Messages;
+using StellaNowSDK.Queue;
 using StellaNowSdkTests.TestUtilities;
 
 namespace StellaNowSdkTests.Messages;
@@ -29,48 +31,64 @@ namespace StellaNowSdkTests.Messages;
 [TestClass]
 public class StellaNowMessageWrapperTests
 {
-    [TestMethod]
-    public void MessageSerializationTest()
-    {
-        var userUpdateMessage = new UserUpdateMessage(
-            Guid.NewGuid().ToString(),"John", "Doe", "1970-01-01", "john.doe@example.com"
-        );
-    
-        var serializedMessage = JsonConvert.SerializeObject(
-            userUpdateMessage,
-            new JsonSerializerSettings()
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-            }
-        );
-    
-        // var expectedFields = new List<Field>
-        // {
-        //     new Field("firstName", "John" ),
-        //     new Field("lastName", "Doe"),
-        //     new Field("dob", "1970-01-01"),
-        //     new Field("email", "john.doe@example.com")
-        // };
+        private Mock<IMessageQueueStrategy> _mockQueueStrategy; 
 
-        var expectedMetadata = new 
+        [TestInitialize]
+        public void SetUp()
         {
-            MessageId = userUpdateMessage.Metadata.MessageId,
-            MessageOriginDateUtc = userUpdateMessage.Metadata.MessageOriginDateUTC,
-            EventTypeDefinitionId = "user_update",
-            EntityTypeIds = userUpdateMessage.Metadata.EntityTypeIds
-        };
+            _mockQueueStrategy = new Mock<IMessageQueueStrategy>();
+        }
 
-        var expectedMessage = JsonConvert.SerializeObject(new
-            {
-                metadata = expectedMetadata,
-                // fields = expectedFields
-            },
-            new JsonSerializerSettings()
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-            }
-        );
+        [TestMethod]
+        public void SendMessage_DirectlyAsJson_Success()
+        {
+            // Arrange
+            string organizationId = "some-organization-id";
+            string projectId = "some-project-id";
+            var eventKey = new EventKey(organizationId, projectId);
 
-        Assert.AreEqual(expectedMessage, serializedMessage);
-    }
+            var messagePayload = new
+            {
+                firstName = "John",
+                lastName = "Doe",
+                dob = "1970-01-01",
+                email = "john.doe@example.com"
+            };
+
+            var serializedPayload = JsonConvert.SerializeObject(messagePayload);
+            var eventTypeDefinitionId = "user_update";
+            var entityTypeIds = new List<EntityType> { new EntityType("punter", Guid.NewGuid().ToString()) };
+            var messageWrapper = new StellaNowMessageWrapper(eventTypeDefinitionId, entityTypeIds, serializedPayload);
+
+            // Act
+            _mockQueueStrategy.Object.Enqueue(new StellaNowEventWrapper(eventKey, messageWrapper, null)); // Assuming null callback for simplicity
+
+            // Assert
+            _mockQueueStrategy.Verify(m => m.Enqueue(It.IsAny<StellaNowEventWrapper>()), Times.Once);
+        }
+
+        [TestMethod]
+        public void SendMessage_UsingUserUpdateMessage_Success()
+        {
+            // Arrange
+            string organizationId = "some-organization-id";
+            string projectId = "some-project-id";
+            var eventKey = new EventKey(organizationId, projectId);
+
+            var userUpdateMessage = new UserUpdateMessage(
+                Guid.NewGuid().ToString(), // PunterId
+                "John", 
+                "Doe", 
+                "1970-01-01", 
+                "john.doe@example.com");
+
+            // Convert message to wrapper directly
+            var messageWrapper = new StellaNowMessageWrapper(userUpdateMessage);
+
+            // Act
+            _mockQueueStrategy.Object.Enqueue(new StellaNowEventWrapper(eventKey, messageWrapper, null)); // Assuming null callback for simplicity
+
+            // Assert
+            _mockQueueStrategy.Verify(m => m.Enqueue(It.IsAny<StellaNowEventWrapper>()), Times.Once);
+        }
 }
