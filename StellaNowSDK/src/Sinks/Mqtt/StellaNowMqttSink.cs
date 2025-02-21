@@ -23,9 +23,8 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
-
+using NanoidDotNet;
 using StellaNowSDK.Config;
-using StellaNowSDK.Config.EnvirnmentConfig;
 using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
@@ -38,10 +37,11 @@ public sealed class StellaNowMqttSink : IStellaNowSink, IDisposable
 
     private readonly IMqttClient _mqttClient;
     
+    public string MqttClientId { get; }
+    
     private readonly IMqttConnectionStrategy _mqttConnectionStrategy;
 
     private readonly StellaNowConfig _config;
-    private readonly StellaNowEnvironmentConfig _envConfig; 
     
     private readonly string _topic;
     
@@ -55,21 +55,23 @@ public sealed class StellaNowMqttSink : IStellaNowSink, IDisposable
     public StellaNowMqttSink(
         ILogger<StellaNowMqttSink>? logger,
         IMqttConnectionStrategy connectionStrategy,
-        StellaNowEnvironmentConfig envConfig,
         StellaNowConfig config)
     {
         _logger = logger;
         _mqttConnectionStrategy = connectionStrategy;
         _config = config;
-        _envConfig = envConfig;
             
         _topic = "in/" + _config.organizationId;
+        
+        MqttClientId = $"StellaNowSDK_{Nanoid.Generate(size: 10)}";
         
         var factory = new MqttFactory();
         _mqttClient = factory.CreateMqttClient();
         
         _mqttClient.ConnectedAsync += async (args) => await OnConnectedAsync(new StellaNowConnectedEventArgs());
         _mqttClient.DisconnectedAsync += async (args) => await OnDisconnectedAsync(new StellaNowDisconnectedEventArgs());
+        
+        _logger.LogInformation($"SDK Client ID is \"{MqttClientId}\"");
     }
 
     private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
@@ -124,7 +126,7 @@ public sealed class StellaNowMqttSink : IStellaNowSink, IDisposable
     {
         _logger?.LogInformation("Connecting");
 
-        _mqttConnectionStrategy.ConnectAsync(_mqttClient);
+        _mqttConnectionStrategy.ConnectAsync(_mqttClient, MqttClientId);
     }
 
     private async Task DisconnectAsync()

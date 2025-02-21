@@ -19,34 +19,30 @@
 // IN THE SOFTWARE.
 
 using MQTTnet.Client;
-using StellaNowSDK.Authentication;
+using StellaNowSDK.Config;
 using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
-public class OidcMqttConnectionStrategy : IMqttConnectionStrategy
+public class UserPassAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
-    private readonly IStellaNowAuthenticationService _authService;
     private readonly StellaNowEnvironmentConfig _envConfig;
-        
-    public OidcMqttConnectionStrategy(
-        StellaNowAuthenticationService authService,
+    private readonly UserPassAuthCredentials _credentials;
+    
+    public UserPassAuthMqttConnectionStrategy(
+        UserPassAuthCredentials credentials,
         StellaNowEnvironmentConfig envConfig)
     {
-        _authService = authService;
         _envConfig = envConfig;
+        _credentials = credentials;
     }
 
     public async void ConnectAsync(IMqttClient client, string clientId)
     {
-        await _authService.AuthenticateAsync();
-        
-        var authResult = _authService.GetAuthenticationData() as StellaNowAuthTokenResult;
-        
         var options = new MqttClientOptionsBuilder()
             .WithClientId(clientId)
             .WithConnectionUri(_envConfig.BrokerUrl)
-            .WithCredentials(authResult.AccessToken, authResult.AccessToken)
+            .WithCredentials(_credentials.username, _credentials.password)
             .Build();
 
         await client.ConnectAsync(options);

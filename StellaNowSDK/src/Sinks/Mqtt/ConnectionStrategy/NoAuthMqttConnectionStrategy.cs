@@ -18,36 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using Microsoft.Extensions.Logging;
 using MQTTnet.Client;
-using NanoidDotNet;
-using StellaNowSDK.Config;
 using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
 public class NoAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
-    private readonly StellaNowConfig _config;
     private readonly StellaNowEnvironmentConfig _envConfig;
-    private readonly string _clientId;
     
     public NoAuthMqttConnectionStrategy(
-        ILogger<NoAuthMqttConnectionStrategy>? logger,
-        StellaNowEnvironmentConfig envConfig,
-        StellaNowConfig config)
+        StellaNowEnvironmentConfig envConfig)
     {
-        _config = config;
         _envConfig = envConfig;
-        
-        _clientId = $"StellaNowSDK_{Nanoid.Generate(size: 10)}";
     }
 
-    public async void ConnectAsync(IMqttClient client)
+    public async void ConnectAsync(IMqttClient client, string clientId)
     {
         var options = new MqttClientOptionsBuilder()
-            .WithClientId(_clientId)
-            .WithWebSocketServer(_envConfig.BrokerUrl)
+            .WithClientId(clientId)
+            .WithConnectionUri(_envConfig.BrokerUrl)
             .Build();
 
         await client.ConnectAsync(options);
