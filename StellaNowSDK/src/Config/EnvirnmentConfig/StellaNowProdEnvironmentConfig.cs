@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,14 +18,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Config;
+namespace StellaNowSDK.Config.EnvirnmentConfig;
 
-public record StellaNowCredentials
+public class StellaNowProdEnvironmentConfig : StellaNowEnvironmentConfig
 {
-    public string ApiKey { get; init; }
-    public string ApiSecret { get; init; }
-    public string OrganizationId { get; init; }
-    public string ProjectId { get; init; }
-    public string ClientId { get; init; }
-    public static string OidcClient => "tools-cli";
+    protected override string ApiBaseUrl => "https://api.prod.stella.cloud";
+    public override string BrokerUrl => "wss://ingestor.prod.stella.cloud:8083/mqtt";
 }

@@ -18,9 +18,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Events;
+using StellaNowSDK.Events;
+using StellaNowSDK.Messages;
 
-public class StellaNowConnectedEventArgs : EventArgs
+namespace StellaNowSDK.Sinks;
+
+public interface IStellaNowSink
 {
+    event Func<StellaNowConnectedEventArgs, Task> ConnectedAsync;
+    event Func<StellaNowDisconnectedEventArgs, Task> DisconnectedAsync;
     
+    bool IsConnected { get; }
+    
+    Task StartAsync();
+
+    Task StopAsync();
+
+    Task SendMessageAsync(StellaNowEventWrapper message);
 }

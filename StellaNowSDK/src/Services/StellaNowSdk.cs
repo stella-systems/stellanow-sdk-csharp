@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
-using StellaNowSDK.ConnectionStrategies;
+using StellaNowSDK.Sinks;
 using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Types;
@@ -31,40 +31,36 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
 {
     private readonly ILogger<IStellaNowSdk>? _logger;
 
-    private readonly StellaNowCredentials _credentials;
+    private readonly StellaNowConfig _config;
     
-    private readonly IStellaNowConnectionStrategy _connectionStrategy;
+    private readonly IStellaNowSink _sink;
     private readonly IStellaNowMessageQueue _messageQueue;
-
-    private readonly EventKey _eventKey;
     
     public event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
     public event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
     
-    public bool IsConnected => _connectionStrategy?.IsConnected ?? false;
+    public bool IsConnected => _sink?.IsConnected ?? false;
     
     public StellaNowSdk(
         ILogger<StellaNowSdk>? logger,
-        IStellaNowConnectionStrategy connectionStrategy, 
+        IStellaNowSink sink, 
         IStellaNowMessageQueue messageQueue,
-        StellaNowCredentials credentials)
+        StellaNowConfig config)
     {
         _logger = logger;
-        _connectionStrategy = connectionStrategy;
-        _credentials = credentials;
+        _sink = sink;
+        _config = config;
         _messageQueue = messageQueue;
-
-        _eventKey = new EventKey(_credentials.OrganizationId, _credentials.ProjectId);
         
-        _connectionStrategy.ConnectedAsync += OnConnectedAsync;
-        _connectionStrategy.DisconnectedAsync += OnDisconnectedAsync;
+        _sink.ConnectedAsync += OnConnectedAsync;
+        _sink.DisconnectedAsync += OnDisconnectedAsync;
     }
 
     public async Task StartAsync()
     {
         _logger?.LogInformation("Starting");
         _messageQueue.StartProcessing();
-        await _connectionStrategy.StartAsync();
+        await _sink.StartAsync();
     }
 
     public async Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null)
@@ -89,7 +85,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         }
         
         _messageQueue.StopProcessing();
-        await _connectionStrategy.StopAsync();
+        await _sink.StopAsync();
     }
 
     public void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null)
@@ -99,8 +95,21 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     
     public void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null)
     {
+        var entityId = message.Metadata.EntityTypeIds!.FirstOrDefault()?.EntityId;
+
+        if (string.IsNullOrWhiteSpace(entityId))
+        {
+            throw new InvalidOperationException(
+                $"Trying to send message with missing entity id. Message ID: {message.Metadata.MessageId}"
+            );
+        }
+
         _messageQueue.EnqueueMessage(
-            new StellaNowEventWrapper(_eventKey, message, callback)
+            new StellaNowEventWrapper(
+                new EventKey(_config.organizationId, _config.projectId, entityId), 
+            message, 
+            callback
+            )
         );
     }
 
@@ -133,8 +142,8 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     public void Dispose()
     {
         _logger?.LogDebug("Disposing");
-        _connectionStrategy.ConnectedAsync -= OnConnectedAsync;
-        _connectionStrategy.DisconnectedAsync -= OnDisconnectedAsync;
+        _sink.ConnectedAsync -= OnConnectedAsync;
+        _sink.DisconnectedAsync -= OnDisconnectedAsync;
     }
 
 }

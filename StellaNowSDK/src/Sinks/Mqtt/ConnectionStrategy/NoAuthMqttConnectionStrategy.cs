@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,21 +18,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Events;
-using StellaNowSDK.Messages;
+using Microsoft.Extensions.Logging;
+using MQTTnet.Client;
+using NanoidDotNet;
+using StellaNowSDK.Config;
+using StellaNowSDK.Config.EnvirnmentConfig;
 
-namespace StellaNowSDK.ConnectionStrategies;
+namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
-public interface IStellaNowConnectionStrategy
+public class NoAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
-    event Func<StellaNowConnectedEventArgs, Task> ConnectedAsync;
-    event Func<StellaNowDisconnectedEventArgs, Task> DisconnectedAsync;
+    private readonly StellaNowConfig _config;
+    private readonly StellaNowEnvironmentConfig _envConfig;
+    private readonly string _clientId;
     
-    bool IsConnected { get; }
-    
-    Task StartAsync();
+    public NoAuthMqttConnectionStrategy(
+        ILogger<NoAuthMqttConnectionStrategy>? logger,
+        StellaNowEnvironmentConfig envConfig,
+        StellaNowConfig config)
+    {
+        _config = config;
+        _envConfig = envConfig;
+        
+        _clientId = $"StellaNowSDK_{Nanoid.Generate(size: 10)}";
+    }
 
-    Task StopAsync();
+    public async void ConnectAsync(IMqttClient client)
+    {
+        var options = new MqttClientOptionsBuilder()
+            .WithClientId(_clientId)
+            .WithWebSocketServer(_envConfig.BrokerUrl)
+            .Build();
 
-    Task SendMessageAsync(StellaNowEventWrapper message);
+        await client.ConnectAsync(options);
+    }
 }

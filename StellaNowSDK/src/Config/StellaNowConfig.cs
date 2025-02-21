@@ -18,9 +18,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Events;
+namespace StellaNowSDK.Config;
 
-public class StellaNowConnectedEventArgs : EventArgs
-{
-    
-}
+public record StellaNowConfig(string organizationId, string projectId);
