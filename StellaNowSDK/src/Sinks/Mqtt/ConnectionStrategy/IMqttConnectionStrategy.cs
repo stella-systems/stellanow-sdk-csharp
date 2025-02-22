@@ -18,9 +18,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Events;
+using MQTTnet.Client;
 
-public class StellaNowConnectedEventArgs : EventArgs
+namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
+
+public interface IMqttConnectionStrategy
 {
-    
+    void ConnectAsync(IMqttClient client, string clientId);
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +23,25 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
-using StellaNowSDK.Authentication;
+using NanoidDotNet;
 using StellaNowSDK.Config;
 using StellaNowSDK.Events;
 using StellaNowSDK.Messages;
+using StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
-namespace StellaNowSDK.ConnectionStrategies;
+namespace StellaNowSDK.Sinks.Mqtt;
 
-public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrategy, IDisposable
+public sealed class StellaNowMqttSink : IStellaNowSink, IDisposable
 {
-    private ILogger<StellaNowMqttWebSocketStrategy>? _logger;
+    private ILogger<IStellaNowSink>? _logger;
 
     private readonly IMqttClient _mqttClient;
+    
+    public string MqttClientId { get; }
+    
+    private readonly IMqttConnectionStrategy _mqttConnectionStrategy;
 
-    private readonly StellaNowAuthenticationService _authService;
-
-    private readonly StellaNowCredentials _credentials;
-    private readonly StellaNowEnvironmentConfig _envConfig; 
+    private readonly StellaNowConfig _config;
     
     private readonly string _topic;
     
@@ -50,24 +52,26 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     
     private CancellationTokenSource? _reconnectCancellationTokenSource;
     
-    public StellaNowMqttWebSocketStrategy(
-        ILogger<StellaNowMqttWebSocketStrategy>? logger,
-        StellaNowAuthenticationService authService,
-        StellaNowEnvironmentConfig envConfig,
-        StellaNowCredentials credentials)
+    public StellaNowMqttSink(
+        ILogger<StellaNowMqttSink>? logger,
+        IMqttConnectionStrategy connectionStrategy,
+        StellaNowConfig config)
     {
         _logger = logger;
-        _authService = authService;
-        _credentials = credentials;
-        _envConfig = envConfig;
+        _mqttConnectionStrategy = connectionStrategy;
+        _config = config;
             
-        _topic = "in/" + _credentials.OrganizationId;
+        _topic = "in/" + _config.organizationId;
+        
+        MqttClientId = $"StellaNowSDK_{Nanoid.Generate(size: 10)}";
         
         var factory = new MqttFactory();
         _mqttClient = factory.CreateMqttClient();
         
         _mqttClient.ConnectedAsync += async (args) => await OnConnectedAsync(new StellaNowConnectedEventArgs());
         _mqttClient.DisconnectedAsync += async (args) => await OnDisconnectedAsync(new StellaNowDisconnectedEventArgs());
+        
+        _logger.LogInformation($"SDK Client ID is \"{MqttClientId}\"");
     }
 
     private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
@@ -122,16 +126,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     {
         _logger?.LogInformation("Connecting");
 
-        await _authService.AuthenticateAsync();
-        
-        var options = new MqttClientOptionsBuilder()
-            .WithClientId(_credentials.ClientId)
-            .WithWebSocketServer(_envConfig.BrokerUrl)
-            .WithTls()
-            .WithCredentials(_authService.GetAccessToken(), _authService.GetAccessToken())
-            .Build();
-
-        await _mqttClient.ConnectAsync(options);
+        _mqttConnectionStrategy.ConnectAsync(_mqttClient, MqttClientId);
     }
 
     private async Task DisconnectAsync()
@@ -162,7 +157,7 @@ public sealed class StellaNowMqttWebSocketStrategy : IStellaNowConnectionStrateg
     public async Task SendMessageAsync(StellaNowEventWrapper message)
     {
         _logger?.LogDebug("Sending Message: {Message}", message.Value.Metadata.MessageId);
-        
+
         var messageBytes = Encoding.UTF8.GetBytes(message.ToString());
         
         var mqttMessage = new MqttApplicationMessageBuilder()

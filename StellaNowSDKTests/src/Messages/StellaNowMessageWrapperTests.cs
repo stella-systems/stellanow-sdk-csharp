@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Queue;
 using StellaNowSdkTests.TestUtilities;
@@ -43,9 +42,7 @@ public class StellaNowMessageWrapperTests
         public void SendMessage_DirectlyAsJson_Success()
         {
             // Arrange
-            string organizationId = "some-organization-id";
-            string projectId = "some-project-id";
-            var eventKey = new EventKey(organizationId, projectId);
+            var eventKey = new EventKey("some-organization-id", "some-project-id", "entity-id");
 
             var messagePayload = new
             {
@@ -71,9 +68,7 @@ public class StellaNowMessageWrapperTests
         public void SendMessage_UsingUserUpdateMessage_Success()
         {
             // Arrange
-            string organizationId = "some-organization-id";
-            string projectId = "some-project-id";
-            var eventKey = new EventKey(organizationId, projectId);
+            var eventKey = new EventKey("some-organization-id", "some-project-id", "entity-id");
 
             var userUpdateMessage = new UserUpdateMessage(
                 Guid.NewGuid().ToString(), // PunterId

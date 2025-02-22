@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,33 +22,62 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Authentication;
 using StellaNowSDK.Config;
-using StellaNowSDK.ConnectionStrategies;
+using StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Sinks;
+using StellaNowSDK.Sinks.Mqtt;
 using StellaNowSDK.Queue;
+using StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
 namespace StellaNowSDK.Services;
 
 public static class StellaNowExtensions
 {
-    public static IServiceCollection AddStellaNowSdk(
+    public static IServiceCollection AddStellaNowSdkWithMqttAndOidcAuth(
         this IServiceCollection services,
         StellaNowEnvironmentConfig environmentConfig, 
-        StellaNowCredentials credentials)
+        StellaNowConfig stellaNowConfig,
+        OidcAuthCredentials authCredentials)
     {
-
         services.AddSingleton(environmentConfig);
-        services.AddSingleton(credentials);
+        services.AddSingleton(stellaNowConfig);
+        services.AddSingleton(authCredentials);
         
         services.AddSingleton<ILogger<StellaNowSdk>, Logger<StellaNowSdk>>();
+        services.AddSingleton<ILogger<StellaNowMessageQueue>, Logger<StellaNowMessageQueue>>();
+        services.AddSingleton<ILogger<StellaNowMqttSink>, Logger<StellaNowMqttSink>>();
+        
         services.AddHttpClient();
         services.AddSingleton<StellaNowAuthenticationService>();
-        services.AddSingleton<ILogger<StellaNowMessageQueue>, Logger<StellaNowMessageQueue>>();
-        services.AddSingleton<ILogger<StellaNowMqttWebSocketStrategy>, Logger<StellaNowMqttWebSocketStrategy>>();
+
         services.AddSingleton<IMessageQueueStrategy, FifoMessageQueueStrategy>();
-        
-        services.AddSingleton<IStellaNowConnectionStrategy, StellaNowMqttWebSocketStrategy>();
+        services.AddSingleton<IMqttConnectionStrategy, OidcMqttConnectionStrategy>();
+        services.AddSingleton<IStellaNowSink, StellaNowMqttSink>();
         services.AddSingleton<IStellaNowMessageQueue, StellaNowMessageQueue>();
         services.AddSingleton<IStellaNowSdk, StellaNowSdk>();
 
         return services;
     }
-}
+    
+    public static IServiceCollection AddStellaNowSdkWithMqttAndNoAuth(
+        this IServiceCollection services,
+        StellaNowEnvironmentConfig environmentConfig, 
+        StellaNowConfig config)
+    {
+        services.AddSingleton(environmentConfig);
+        services.AddSingleton(config);
+        
+        services.AddSingleton<ILogger<StellaNowSdk>, Logger<StellaNowSdk>>();
+        services.AddSingleton<ILogger<StellaNowMessageQueue>, Logger<StellaNowMessageQueue>>();
+        services.AddSingleton<ILogger<StellaNowMqttSink>, Logger<StellaNowMqttSink>>();
+        
+        services.AddHttpClient();
+
+        services.AddSingleton<IMessageQueueStrategy, FifoMessageQueueStrategy>();
+        services.AddSingleton<IMqttConnectionStrategy, NoAuthMqttConnectionStrategy>();
+        services.AddSingleton<IStellaNowSink, StellaNowMqttSink>();
+        services.AddSingleton<IStellaNowMessageQueue, StellaNowMessageQueue>();
+        services.AddSingleton<IStellaNowSdk, StellaNowSdk>();
+
+        return services;
+    }
+}    

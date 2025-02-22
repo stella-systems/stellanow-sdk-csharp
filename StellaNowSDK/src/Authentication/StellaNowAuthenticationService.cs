@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,22 +18,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-
-using System.Text;
-using IdentityModel.Client;
-using System.Net.Http;
-
+using Duende.IdentityModel.Client;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using StellaNowSDK.Config;
+using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Authentication;
 
-public class StellaNowAuthenticationService
+public class StellaNowAuthenticationService: IStellaNowAuthenticationService
 {
     private readonly ILogger<StellaNowAuthenticationService> _logger;
-    private readonly StellaNowCredentials _credentials;
-    private readonly StellaNowEnvironmentConfig _envConfig;
+    private readonly StellaNowConfig _config;
+    private readonly OidcAuthCredentials _authCredentials;
     private readonly HttpClient _httpClient;
     private readonly string _discoveryDocumentUrl;
 
@@ -43,14 +39,15 @@ public class StellaNowAuthenticationService
     public StellaNowAuthenticationService(
         ILogger<StellaNowAuthenticationService> logger,
         StellaNowEnvironmentConfig envConfig,
-        StellaNowCredentials credentials,
+        StellaNowConfig config,
+        OidcAuthCredentials authCredentials,
         HttpClient httpClient)
     {
         _logger = logger;
-        _envConfig = envConfig;
-        _credentials = credentials;
+        _config = config;
+        _authCredentials = authCredentials;
         _httpClient = httpClient;
-        _discoveryDocumentUrl = $"{_envConfig.Authority}/realms/{_credentials.OrganizationId}";
+        _discoveryDocumentUrl = $"{envConfig.Authority}/realms/{_config.organizationId}";
     }
 
     public async Task AuthenticateAsync()
@@ -94,9 +91,9 @@ public class StellaNowAuthenticationService
         _tokenResponse = await _httpClient.RequestPasswordTokenAsync(new PasswordTokenRequest
         {
             Address = discoveryDocumentResponse.TokenEndpoint,
-            ClientId = StellaNowCredentials.OidcClient,
-            UserName = _credentials.ApiKey,
-            Password = _credentials.ApiSecret,
+            ClientId = OidcAuthCredentials.OidcClient,
+            UserName = _authCredentials.username,
+            Password = _authCredentials.password
         });
 
         ValidateTokenResponse();
@@ -115,7 +112,7 @@ public class StellaNowAuthenticationService
         _tokenResponse = await _httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
         {
             Address = discoveryDocumentResponse.TokenEndpoint,
-            ClientId = StellaNowCredentials.OidcClient,
+            ClientId = OidcAuthCredentials.OidcClient,
             RefreshToken = _tokenResponse!.RefreshToken!
         });
 
@@ -126,8 +123,8 @@ public class StellaNowAuthenticationService
         return true;
     }
 
-    public string? GetAccessToken()
+    public StellaNowAuthenticationResult GetAuthenticationData()
     {
-        return _tokenResponse?.AccessToken;
+        return new StellaNowAuthTokenResult(_tokenResponse?.AccessToken);
     }
 }

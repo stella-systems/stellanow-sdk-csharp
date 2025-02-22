@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,4 +20,4 @@
 
 namespace StellaNowSDK.Messages;
 
-public record EventKey(string OrganizationId, string ProjectId);
+public record EventKey(string OrganizationId, string ProjectId, string EntityId);

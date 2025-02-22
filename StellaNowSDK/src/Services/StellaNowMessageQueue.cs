@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,7 @@
 // IN THE SOFTWARE.
 
 using Microsoft.Extensions.Logging;
-using StellaNowSDK.ConnectionStrategies;
+using StellaNowSDK.Sinks;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Queue;
 
@@ -30,7 +30,7 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
     private readonly ILogger<StellaNowMessageQueue>? _logger;
     
     private readonly IMessageQueueStrategy _messageQueueStrategy;
-    private readonly IStellaNowConnectionStrategy _connectionStrategy;
+    private readonly IStellaNowSink _sink;
     private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     private Task? _queueProcessingTask;
     
@@ -38,11 +38,11 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
 
     public StellaNowMessageQueue(
         ILogger<StellaNowMessageQueue>? logger,
-        IMessageQueueStrategy messageQueueStrategy, IStellaNowConnectionStrategy connectionStrategy)
+        IMessageQueueStrategy messageQueueStrategy, IStellaNowSink sink)
     {
         _logger = logger;
         _messageQueueStrategy = messageQueueStrategy;
-        _connectionStrategy = connectionStrategy;
+        _sink = sink;
     }
 
     public void StartProcessing()
@@ -83,7 +83,7 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
             try
             {
                 if (_currentMessage == null && 
-                    _connectionStrategy.IsConnected && 
+                    _sink.IsConnected && 
                     _messageQueueStrategy.TryDequeue(out var message))
                 {
                     _currentMessage = message;
@@ -96,7 +96,7 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
                         "Attempting to send message: {Message}", 
                         _currentMessage.Value.Metadata.MessageId);
                     
-                    await _connectionStrategy.SendMessageAsync(_currentMessage);
+                    await _sink.SendMessageAsync(_currentMessage);
                     _currentMessage = null;  // Clear the current message after it was successfully sent
                 }
                 else

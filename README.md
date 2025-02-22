@@ -15,7 +15,7 @@ Welcome to the StellaNow C# SDK. This SDK is designed to provide an easy-to-use 
 * Extensibility options for more specific needs
 
 ## Getting Started
-Before you start integrating the SDK, ensure you have a Stella Now account and valid API credentials which include **OrganizationId**, **ApiKey**, and **ApiSecret**.
+Before you start integrating the SDK, ensure you have a Stella Now account.
 
 ## Installation
 To integrate the StellaNowSDK into your project, follow these steps:
@@ -33,25 +33,66 @@ dotnet add package StellaNowSDK
 ```
 
 ## Configuration
-You will need to provide necessary credentials to interact with the Stella Now platform:
+The SDK supports multiple authentication strategies when connecting to the Stella Now MQTT Sink. You can configure the SDK using OIDC authentication or No authentication, depending on your environment.
+
+### Setting Up StellaNow SDK
+To use the SDK, first, ensure you have set the necessary environment variables:
+* USERNAME
+* PASSWORD
+* ORGANIZATION_ID
+* PROJECT_ID
+
+* Then, register the SDK with the appropriate authentication strategy.
+
+### Using OIDC Authentication
+
+To authenticate with `StellaNow's` OIDC (OpenID Connect), use `AddStellaNowSdkWithMqttAndOidcAuth`:
 
 ```csharp
-services.AddStellaNowSdk(
+services.AddStellaNowSdkWithMqttAndOidcAuth(
     new StellaNowDevEnvironmentConfig(),
-    new StellaNowCredentials
-    {
-        ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
-        ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
-        ClientId = "StellaNowSDK",
+    new StellaNowConfig(
         OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
         ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
-    }
+    ),
+    new OidcAuthCredentials(
+        Environment.GetEnvironmentVariable("API_KEY")!,
+        Environment.GetEnvironmentVariable("API_SECRET")!
+    )
 );
 ```
 
+This will:
+* Authenticate with OIDC using the provided username and password, using a specific OIDC Client designed for data ingestion.
+* Resulting token will be used in MQTT broker authentication with specific claim.
+* Connect to the MQTT sink securely.
+
+### Using No Authentication
+For local development or scenarios where authentication is not required, use `AddStellaNowSdkWithMqttAndNoAuth`:
+
+```csharp
+services.AddStellaNowSdkWithMqttAndNoAuth(
+    new StellaNowDevEnvironmentConfig(),
+    new StellaNowConfig(
+        OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+        ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
+    )
+);
+```
+
+This will:
+* Connect to the MQTT sink without authentication.
+* Be useful for testing against local MQTT brokers like NanoMQ.
+
 Ensure you have set the appropriate environment variables.
 
-> **Note:**  Please note that the `ClientId` used in the `StellaNowConfig` needs to be unique per connection. If two connections use the same `ClientId`, then the first connection will be dropped. Always ensure that the `ClientId` is unique for each connection your application makes.
+> **Note:**  The `ClientId` used in the `StellaNowConfig` must be unique per connection. If two connections use the same `ClientId`, the first connection will be dropped. To prevent conflicts, the SDK now automatically generates a unique `ClientId` at startup. You can find the generated value in the logs:
+
+```csharp
+[2025-02-21 17:39:07] info: StellaNowSDK.Sinks.Mqtt.ConnectionStrategy.OidcMqttConnectionStrategy[0]
+SDK Client ID is "StellaNowSDK_zhwxTo2KQX"
+```
+> If needed, you can override this behavior by manually specifying a `ClientId` as part of `StellaNowConfig`.
 
 ## Sample Application
 Here is a simple application that uses StellaNowSDK to send user login messages to the Stella Now platform.
@@ -86,11 +127,14 @@ private async Task RunAsync(int? messageCount)
         {
             break; // Exit the loop if cancellation is requested
         }
-        var message = new UserLoginStellaNowMessage(
+        
+        var message = new UserDetailsMessage(
             uuid,
             uuid,
-            DateTime.UtcNow,
-            2
+            new PhoneNumberModel(
+                44,
+                753594
+                )
         );
 
         // Send the message
@@ -138,16 +182,16 @@ private static void RegisterServices()
     services.AddTransient<Program>();
 
     // Register StellaNowSdk with necessary configurations and environment.
-    services.AddStellaNowSdk(
-        new StellaNowDevEnvironmentConfig(),
-        new StellaNowCredentials
-        {
-            ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
-            ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
-            ClientId = "StellaNowSDK",
-            OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
-            ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
-        }
+    services.AddStellaNowSdkWithMqttAndOidcAuth(
+        new StellaNowProdEnvironmentConfig(),
+        new StellaNowConfig(
+            Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+            Environment.GetEnvironmentVariable("PROJECT_ID")!
+        ),
+        new OidcAuthCredentials(
+            Environment.GetEnvironmentVariable("OIDC_USERNAME"),
+            Environment.GetEnvironmentVariable("OIDC_PASSWORD")!
+        )
     );
 
     // Build the service provider from the service collection.
@@ -225,22 +269,58 @@ Once you have installed the **StellaNow CLI** tool, you can use it to generate m
 Please note that it is discouraged to write these classes yourself. Using the CLI tool ensures that the message format aligns with the configuration defined in the Operators Console and reduces the potential for errors.
 
 ## Customization
-StellaNowSDK provides the flexibility to adapt to your needs. Developers can extend provided interfaces and add custom implementations if necessary. This includes changing the message queue strategy to fit your application's requirements.
 
-By default, the SDK uses in-memory queues to temporarily hold messages before sending them. These queues are not persistent and data will be lost if the application terminates unexpectedly.
+StellaNowSDK provides extensive flexibility for developers to adapt the SDK to their specific needs. You can extend key components, including message queuing strategies, sinks (where messages are sent), connection strategies, and authentication mechanisms.
 
-If your application requires persistent queues that survive application restarts or crashes, you can implement your own queue strategy by extending the `IMessageQueueStrategy` interface and integrating it with a persistent storage solution (like a database or a disk-based queue).
+### Customizing the Message Queue Strategy
+By default, `StellaNowSDK` uses an in-memory queue to temporarily hold messages before sending them to a sink. These non-persistent queues will lose all messages if the application terminates unexpectedly.
 
-Here is an example of how to change the queue strategy:
+If your application requires a persistent queue that survives restarts or crashes, you can implement a custom queue strategy by extending `IMessageQueueStrategy` and integrating it with a database, file system, or distributed queue.
 
-```csharp    
+#### Using a Custom Queue Strategy
+
+```csharp
 services.AddSingleton<IMessageQueueStrategy, YourCustomQueueStrategy>();
 ```
 
-Remember to replace `YourCustomQueueStrategy` with your custom strategy class. Be aware that adding a persistent queue may impact the performance of your application depending on the solution used.
+Replace YourCustomQueueStrategy with your custom queue implementation.
 
-For advanced customization options and details on how to extend StellaNowSDK, refer to the detailed SDK documentation on our website.
+>⚠️ **Performance Considerations:** Persistent queues introduce additional latency and require careful design to balance reliability and performance.
 
+#### Adding a Custom Sink & Connection Strategy
+A sink is where messages are ultimately delivered. StellaNowSDK supports MQTT-based sinks, but you can extend this to support Kafka, Webhooks, Databases, or any custom integration.
+
+Each sink is paired with a connection strategy, which determines how it establishes a connection. You can implement a custom connection strategy for different protocols or authentication mechanisms.
+
+##### Example: Adding a Custom Sink
+To add a new sink, implement `IStellaNowSink` and register it:
+
+```csharp
+services.AddSingleton<IStellaNowSink, YourCustomSink>();
+```
+
+##### Example: Custom Connection Strategy for a Sink 
+Each sink needs a connection strategy, implemented using `IMqttConnectionStrategy` (for MQTT) or a custom interface:
+
+```csharp
+services.AddSingleton<IMqttConnectionStrategy, YourCustomConnectionStrategy>();
+```
+
+#### Extending the Authentication Service
+StellaNowSDK supports multiple authentication mechanisms, including:
+
+* OIDC-based authentication
+* No authentication
+
+If your project requires a new authentication mechanism for sink of your choice, implement `IStellaNowAuthenticationService` and register it.
+
+##### Example: Adding a Custom Authentication Service
+
+```csharp
+services.AddSingleton<IStellaNowAuthenticationService, YourCustomAuthService>();
+```
+
+> ⚠️ **Security Considerations:** Ensure your authentication mechanism is properly secured and does not expose credentials in logs or configuration files.
 
 ## Support
 For any issues or feature requests, feel free to create a new issue on our GitHub repository. If you need further assistance, contact our support team at help@stella.systems.
