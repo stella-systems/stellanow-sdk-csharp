@@ -2,6 +2,9 @@
 riderModule.iml
 /_ReSharper.Caches/
 
+# IDE
+.idea/
+
 # .gitignore for .NET 6 on macOS
 
 # macOS-specific files
