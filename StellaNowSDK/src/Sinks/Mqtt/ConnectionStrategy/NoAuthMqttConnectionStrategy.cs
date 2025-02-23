@@ -18,9 +18,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Events;
+using MQTTnet.Client;
+using StellaNowSDK.Config.EnvirnmentConfig;
 
-public class StellaNowConnectedEventArgs : EventArgs
+namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
+
+public class NoAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
+    private readonly StellaNowEnvironmentConfig _envConfig;
     
+    public NoAuthMqttConnectionStrategy(
+        StellaNowEnvironmentConfig envConfig)
+    {
+        _envConfig = envConfig;
+    }
+
+    public async void ConnectAsync(IMqttClient client, string clientId)
+    {
+        var options = new MqttClientOptionsBuilder()
+            .WithClientId(clientId)
+            .WithConnectionUri(_envConfig.BrokerUrl)
+            .Build();
+
+        await client.ConnectAsync(options);
+    }
 }

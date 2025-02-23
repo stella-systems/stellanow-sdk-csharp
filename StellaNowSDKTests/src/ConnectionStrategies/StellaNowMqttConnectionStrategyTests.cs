@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StellaNowSDK.Config;
+using StellaNowSDK.Config.EnvirnmentConfig;
 using StellaNowSDK.Services;
 using StellaNowSdkTests.TestUtilities;
 
@@ -47,16 +48,16 @@ public class StellaNowMqttConnectionStrategyTests
             builder.SetMinimumLevel(LogLevel.Debug);
         });
         
-        services.AddStellaNowSdk(
-            new StellaNowDevEnvironmentConfig(),
-            new StellaNowCredentials()
-            {
-                ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
-                ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
-                ClientId = "StellaNowSDK",
-                OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
-                ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
-            }
+        services.AddStellaNowSdkWithMqttAndOidcAuth(
+            new StellaNowProdEnvironmentConfig(),
+            new StellaNowConfig (
+                Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+                Environment.GetEnvironmentVariable("PROJECT_ID")!
+            ),
+            new OidcAuthCredentials(
+                Environment.GetEnvironmentVariable("OIDC_USERNAME"),
+                Environment.GetEnvironmentVariable("OIDC_PASSWORD")!
+            )
         );
 
         _serviceProvider = services.BuildServiceProvider();

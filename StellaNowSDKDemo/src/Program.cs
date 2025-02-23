@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+﻿// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
+using StellaNowSDK.Config.EnvirnmentConfig;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Services;
 using StellaNowSDKDemo.Messages;
+using StellaNowSDKDemo.Messages.Models;
 
 namespace StellaNowSDKDemo;
 
@@ -62,11 +64,13 @@ internal class Program
             {
                 break; // Exit the loop if cancellation is requested
             }
-            var message = new UserLoginStellaNowMessage(
+            var message = new UserDetailsMessage(
                 uuid,
                 uuid,
-                DateTime.UtcNow,
-                2
+                new PhoneNumberModel(
+                    44,
+                    753594
+                    )
             );
 
             // Send the message
@@ -108,16 +112,16 @@ internal class Program
         services.AddTransient<Program>();
 
         // Register StellaNowSdk with necessary configurations and environment.
-        services.AddStellaNowSdk(
-            new StellaNowDevEnvironmentConfig(),
-            new StellaNowCredentials
-            {
-                ApiKey = Environment.GetEnvironmentVariable("API_KEY")!,
-                ApiSecret = Environment.GetEnvironmentVariable("API_SECRET")!,
-                ClientId = "StellaNowSDK",
-                OrganizationId = Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
-                ProjectId = Environment.GetEnvironmentVariable("PROJECT_ID")!
-            }
+        services.AddStellaNowSdkWithMqttAndOidcAuth(
+            new StellaNowProdEnvironmentConfig(),
+            new StellaNowConfig(
+                Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+                Environment.GetEnvironmentVariable("PROJECT_ID")!
+            ),
+            new OidcAuthCredentials(
+                Environment.GetEnvironmentVariable("OIDC_USERNAME"),
+                Environment.GetEnvironmentVariable("OIDC_PASSWORD")!
+            )
         );
 
         // Build the service provider from the service collection.

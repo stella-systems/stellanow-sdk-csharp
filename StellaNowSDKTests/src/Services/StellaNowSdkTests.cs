@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using StellaNowSDK.Config;
-using StellaNowSDK.ConnectionStrategies;
+using StellaNowSDK.Sinks;
 using StellaNowSDK.Services;
 using StellaNowSDK.Types;
 using StellaNowSDK.Messages;
@@ -33,7 +33,7 @@ namespace StellaNowSdkTests.Services
     public class StellaNowSdkTests
     {
         private Mock<IStellaNowMessageQueue>? _mockMessageQueue;
-        private Mock<IStellaNowConnectionStrategy>? _mockConnectionStrategy;
+        private Mock<IStellaNowSink>? _mockConnectionStrategy;
         private StellaNowSdk? _sdk;
 
         [TestInitialize]
@@ -43,14 +43,14 @@ namespace StellaNowSdkTests.Services
             _mockMessageQueue = new Mock<IStellaNowMessageQueue>();
 
             // Initialize a mock for the IStellaNowConnectionStrategy
-            _mockConnectionStrategy = new Mock<IStellaNowConnectionStrategy>();
+            _mockConnectionStrategy = new Mock<IStellaNowSink>();
 
             // Create an instance of StellaNowSdk with the mocked dependencies
             _sdk = new StellaNowSdk(
                 null, // pass null for the logger for simplicity
                 _mockConnectionStrategy.Object, 
                 _mockMessageQueue.Object, 
-                new StellaNowCredentials() // use default configuration
+                new StellaNowConfig("","") // use default configuration
             );
         }
 

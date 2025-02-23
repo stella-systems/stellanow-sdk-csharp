@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 Stella Technologies (UK) Limited.
+// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,21 +18,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using StellaNowSDK.Events;
-using StellaNowSDK.Messages;
+using MQTTnet.Client;
+using StellaNowSDK.Config;
+using StellaNowSDK.Config.EnvirnmentConfig;
 
-namespace StellaNowSDK.ConnectionStrategies;
+namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
-public interface IStellaNowConnectionStrategy
+public class UserPassAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
-    event Func<StellaNowConnectedEventArgs, Task> ConnectedAsync;
-    event Func<StellaNowDisconnectedEventArgs, Task> DisconnectedAsync;
+    private readonly StellaNowEnvironmentConfig _envConfig;
+    private readonly UserPassAuthCredentials _credentials;
     
-    bool IsConnected { get; }
-    
-    Task StartAsync();
+    public UserPassAuthMqttConnectionStrategy(
+        UserPassAuthCredentials credentials,
+        StellaNowEnvironmentConfig envConfig)
+    {
+        _envConfig = envConfig;
+        _credentials = credentials;
+    }
 
-    Task StopAsync();
+    public async void ConnectAsync(IMqttClient client, string clientId)
+    {
+        var options = new MqttClientOptionsBuilder()
+            .WithClientId(clientId)
+            .WithConnectionUri(_envConfig.BrokerUrl)
+            .WithCredentials(_credentials.username, _credentials.password)
+            .Build();
 
-    Task SendMessageAsync(StellaNowEventWrapper message);
+        await client.ConnectAsync(options);
+    }
 }
