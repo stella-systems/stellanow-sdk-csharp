@@ -37,7 +37,7 @@ public class OidcMqttConnectionStrategy : IMqttConnectionStrategy
         _envConfig = envConfig;
     }
 
-    public async void ConnectAsync(IMqttClient client, string clientId)
+    public async Task ConnectAsync(IMqttClient client, string clientId)
     {
         await _authService.AuthenticateAsync();
         

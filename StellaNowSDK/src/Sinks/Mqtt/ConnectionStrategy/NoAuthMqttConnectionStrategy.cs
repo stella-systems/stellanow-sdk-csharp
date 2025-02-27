@@ -33,7 +33,7 @@ public class NoAuthMqttConnectionStrategy : IMqttConnectionStrategy
         _envConfig = envConfig;
     }
 
-    public async void ConnectAsync(IMqttClient client, string clientId)
+    public async Task ConnectAsync(IMqttClient client, string clientId)
     {
         var options = new MqttClientOptionsBuilder()
             .WithClientId(clientId)

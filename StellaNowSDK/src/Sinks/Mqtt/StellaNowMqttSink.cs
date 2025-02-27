@@ -126,7 +126,7 @@ public sealed class StellaNowMqttSink : IStellaNowSink, IDisposable
     {
         _logger?.LogInformation("Connecting");
 
-        _mqttConnectionStrategy.ConnectAsync(_mqttClient, MqttClientId);
+        await _mqttConnectionStrategy.ConnectAsync(_mqttClient, MqttClientId);
     }
 
     private async Task DisconnectAsync()

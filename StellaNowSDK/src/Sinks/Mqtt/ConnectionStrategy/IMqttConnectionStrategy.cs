@@ -24,5 +24,5 @@ namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
 public interface IMqttConnectionStrategy
 {
-    void ConnectAsync(IMqttClient client, string clientId);
+    Task ConnectAsync(IMqttClient client, string clientId);
 }

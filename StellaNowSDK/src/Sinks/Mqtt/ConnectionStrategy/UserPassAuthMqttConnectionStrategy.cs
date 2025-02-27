@@ -37,7 +37,7 @@ public class UserPassAuthMqttConnectionStrategy : IMqttConnectionStrategy
         _credentials = credentials;
     }
 
-    public async void ConnectAsync(IMqttClient client, string clientId)
+    public async Task ConnectAsync(IMqttClient client, string clientId)
     {
         var options = new MqttClientOptionsBuilder()
             .WithClientId(clientId)
