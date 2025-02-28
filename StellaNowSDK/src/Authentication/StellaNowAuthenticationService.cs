@@ -32,7 +32,6 @@ namespace StellaNowSDK.Authentication;
 /// <remarks>
 /// This service relies on <see cref="OidcAuthCredentials"/> and <see cref="IdentityModel"/> 
 /// to request and refresh tokens from Keycloak or a compatible OIDC provider.
-///
 /// This is used for <see cref=IStellaNowSinks/> that are protected through authorisation 
 /// </remarks>
 public class StellaNowAuthenticationService: IStellaNowAuthenticationService
