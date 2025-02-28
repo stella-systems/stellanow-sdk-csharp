@@ -22,10 +22,40 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Queue;
 
+/// <summary>
+/// Defines the contract for a message queue strategy in StellaNow.
+/// </summary>
+/// <remarks>
+/// Different implementations can store messages in various data structures or orders (e.g., FIFO, LIFO).
+/// </remarks>
 public interface IMessageQueueStrategy
 {
-    void Enqueue(StellaNowEventWrapper? message);
-    bool TryDequeue(out StellaNowEventWrapper? message);
+    /// <summary>
+    /// Enqueues the specified <see cref="StellaNowEventWrapper"/> message into the queue.
+    /// </summary>
+    /// <param name="message">The message to be queued.</param>
+    void Enqueue(StellaNowEventWrapper message);
+    
+    /// <summary>
+    /// Attempts to dequeue a <see cref="StellaNowEventWrapper"/> from the queue.
+    /// </summary>
+    /// <param name="message">
+    /// When this method returns, contains the dequeued message if successful; otherwise, null.
+    /// </param>
+    /// <returns>
+    /// <c>true</c> if a message was successfully dequeued; <c>false</c> if the queue was empty.
+    /// </returns>
+    bool TryDequeue(out StellaNowEventWrapper message);
+    
+    /// <summary>
+    /// Indicates whether the queue is currently empty.
+    /// </summary>
+    /// <returns><c>true</c> if the queue is empty; otherwise, <c>false</c>.</returns>
     bool IsEmpty();
+    
+    /// <summary>
+    /// Gets the number of messages currently in the queue.
+    /// </summary>
+    /// <returns>The count of messages in the queue.</returns>
     int GetMessageCount();
 }

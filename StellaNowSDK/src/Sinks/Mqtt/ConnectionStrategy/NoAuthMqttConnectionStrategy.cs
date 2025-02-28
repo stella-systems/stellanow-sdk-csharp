@@ -23,16 +23,27 @@ using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
+/// <summary>
+/// Provides a connection strategy for MQTT that does not require authentication.
+/// </summary>
+/// <remarks>
+/// Suitable for local development or brokers configured without credentials.
+/// </remarks>
 public class NoAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
     private readonly StellaNowEnvironmentConfig _envConfig;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NoAuthMqttConnectionStrategy"/> class.
+    /// </summary>
+    /// <param name="envConfig">Environment configuration containing broker URLs.</param>
     public NoAuthMqttConnectionStrategy(
         StellaNowEnvironmentConfig envConfig)
     {
         _envConfig = envConfig;
     }
 
+    /// <inheritdoc />
     public async Task ConnectAsync(IMqttClient client, string clientId)
     {
         var options = new MqttClientOptionsBuilder()

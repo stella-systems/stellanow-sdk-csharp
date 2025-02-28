@@ -20,14 +20,40 @@
 
 namespace StellaNowSDK.Config.EnvirnmentConfig;
 
+/// <summary>
+/// Base class for environment-specific configuration in StellaNow.
+/// </summary>
+/// <remarks>
+/// Implementations of this abstract class specify environment-specific values
+/// for the API base URL and ingestor broker URL. The <see cref="Authority"/> property
+/// is derived from <see cref="ApiBaseUrl"/>.
+/// </remarks>
 public abstract class StellaNowEnvironmentConfig
 {
+    /// <summary>
+    /// The base URL for StellaNow API endpoints.
+    /// </summary>
     protected abstract string ApiBaseUrl { get; }
 
+    /// <summary>
+    /// The authority endpoint for authentication (e.g., Keycloak realm or OIDC issuer).
+    /// </summary>
+    /// <remarks>
+    /// Built by appending "auth" to the <see cref="ApiBaseUrl"/>. 
+    /// </remarks>
     public string Authority => BuildApiUrl("auth");
+    
+    /// <summary>
+    /// The URL (including protocol and port) of the ingestor broker.
+    /// </summary>
     public abstract string BrokerUrl { get; }
 
-    protected string BuildApiUrl(string path)
+    /// <summary>
+    /// Constructs a full API URL by appending the specified path to <see cref="ApiBaseUrl"/>.
+    /// </summary>
+    /// <param name="path">The endpoint or path to append.</param>
+    /// <returns>A fully qualified URL string.</returns>
+    private string BuildApiUrl(string path)
     {
         return $"{ApiBaseUrl}/{path}";
     }

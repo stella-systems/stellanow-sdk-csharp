@@ -20,7 +20,14 @@
 
 namespace StellaNowSDK.Events;
 
+/// <summary>
+/// Provides data for the event that occurs when a StellaNow sink disconnects from a broker or service.
+/// </summary>
+/// <remarks>
+/// Currently, this class does not contain any properties or fields, but it can be extended to carry
+/// disconnection-specific data if needed (e.g., timestamps, error details).
+/// </remarks>
 public class StellaNowDisconnectedEventArgs : EventArgs
 {
-    
+    // This class intentionally left empty.
 }

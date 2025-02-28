@@ -25,6 +25,15 @@ using StellaNowSDK.Queue;
 
 namespace StellaNowSDK.Services;
 
+/// <summary>
+/// A concrete implementation of <see cref="IStellaNowMessageQueue"/> that uses
+/// an <see cref="IMessageQueueStrategy"/> (e.g., FIFO/LIFO) to store messages 
+/// and an <see cref="IStellaNowSink"/> to dispatch them.
+/// </summary>
+/// <remarks>
+/// This class manages a background task that continuously attempts to dequeue 
+/// and send messages, delaying if no messages are available or if the sink is disconnected.
+/// </remarks>
 public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
 {
     private readonly ILogger<StellaNowMessageQueue>? _logger;
@@ -36,6 +45,14 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
     
     private StellaNowEventWrapper? _currentMessage;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StellaNowMessageQueue"/> class.
+    /// </summary>
+    /// <param name="logger">Logger for diagnostic messages and errors.</param>
+    /// <param name="messageQueueStrategy">
+    /// The strategy used to enqueue and dequeue messages (FIFO, LIFO, etc.).
+    /// </param>
+    /// <param name="sink">The sink responsible for sending messages to the broker or service.</param>
     public StellaNowMessageQueue(
         ILogger<StellaNowMessageQueue>? logger,
         IMessageQueueStrategy messageQueueStrategy, IStellaNowSink sink)
@@ -45,6 +62,7 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
         _sink = sink;
     }
 
+    /// <inheritdoc />
     public void StartProcessing()
     {
         if (_queueProcessingTask == null || _queueProcessingTask.IsCompleted)
@@ -53,27 +71,36 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
         }
     }
     
+    /// <inheritdoc />
     public void StopProcessing()
     {
         _cancellationTokenSource?.Cancel();
     }
 
+    /// <inheritdoc />
     public void EnqueueMessage(StellaNowEventWrapper message)
     {
         _logger?.LogDebug("Queueing Message: {Message}", message.Value.Metadata.MessageId);
         _messageQueueStrategy.Enqueue(message);
     }
 
+    /// <inheritdoc />
     public bool IsQueueEmpty()
     {
         return _messageQueueStrategy.IsEmpty();
     }
 
+    /// <inheritdoc />
     public int GetMessageCountOnQueue()
     {
         return _messageQueueStrategy.GetMessageCount();
     }
 
+    /// <summary>
+    /// Continuously processes messages by dequeuing and sending them to the sink 
+    /// until cancellation is requested.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the background queue processing.</returns>
     private async Task ProcessMessageQueueAsync()
     {
         _logger?.LogDebug("Start Processing Message Queue");
@@ -122,6 +149,10 @@ public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
         _logger?.LogDebug("Ended Processing Message Queue");
     }
     
+    /// <summary>
+    /// Disposes the queue, cancelling any background processing tasks 
+    /// and releasing associated resources.
+    /// </summary>
     public void Dispose()
     {
         _logger?.LogDebug("Disposing");

@@ -23,25 +23,35 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Queue;
 
+/// <summary>
+/// A last-in, first-out (LIFO) queue strategy for storing <see cref="StellaNowEventWrapper"/> messages.
+/// </summary>
+/// <remarks>
+/// Internally uses a <see cref="ConcurrentStack{T}"/> to ensure thread-safe push/pop operations.
+/// </remarks>
 public sealed class LifoMessageQueueStrategy : IMessageQueueStrategy
 {
-    private readonly ConcurrentStack<StellaNowEventWrapper?> _stack = new ConcurrentStack<StellaNowEventWrapper?>();
+    private readonly ConcurrentStack<StellaNowEventWrapper> _stack = new ConcurrentStack<StellaNowEventWrapper>();
 
-    public void Enqueue(StellaNowEventWrapper? message)
+    /// <inheritdoc />
+    public void Enqueue(StellaNowEventWrapper message)
     {
         _stack.Push(message);
     }
 
-    public bool TryDequeue(out StellaNowEventWrapper? message)
+    /// <inheritdoc />
+    public bool TryDequeue(out StellaNowEventWrapper message)
     {
         return _stack.TryPop(out message);
     }
     
+    /// <inheritdoc />
     public bool IsEmpty()
     {
         return !_stack.Any();
     }
 
+    /// <inheritdoc />
     public int GetMessageCount()
     {
         return _stack.Count;

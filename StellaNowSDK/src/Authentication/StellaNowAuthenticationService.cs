@@ -25,6 +25,16 @@ using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Authentication;
 
+/// <summary>
+/// Provides an OIDC-based authentication service for StellaNow, handling login
+/// and token refresh using a direct grant flow (resource owner password credentials).
+/// </summary>
+/// <remarks>
+/// This service relies on <see cref="OidcAuthCredentials"/> and <see cref="IdentityModel"/> 
+/// to request and refresh tokens from Keycloak or a compatible OIDC provider.
+///
+/// This is used for <see cref=IStellaNowSinks/> that are protected through authorisation 
+/// </remarks>
 public class StellaNowAuthenticationService: IStellaNowAuthenticationService
 {
     private readonly ILogger<StellaNowAuthenticationService> _logger;
@@ -36,6 +46,14 @@ public class StellaNowAuthenticationService: IStellaNowAuthenticationService
     private DiscoveryDocumentResponse? _discoveryDocumentResponse;
     private TokenResponse? _tokenResponse;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StellaNowAuthenticationService"/> class.
+    /// </summary>
+    /// <param name="logger">Used for logging information, warnings, or errors.</param>
+    /// <param name="envConfig">Specifies environment details (e.g., base URLs).</param>
+    /// <param name="config">Contains organization and project IDs for the StellaNow platform.</param>
+    /// <param name="authCredentials">OIDC username/password credentials.</param>
+    /// <param name="httpClient">An <see cref="HttpClient"/> instance for making OIDC requests.</param>
     public StellaNowAuthenticationService(
         ILogger<StellaNowAuthenticationService> logger,
         StellaNowEnvironmentConfig envConfig,
@@ -50,12 +68,19 @@ public class StellaNowAuthenticationService: IStellaNowAuthenticationService
         _discoveryDocumentUrl = $"{envConfig.Authority}/realms/{_config.organizationId}";
     }
 
+    /// <inheritdoc />
     public async Task AuthenticateAsync()
     {
         if (!await RefreshTokensAsync())
             await LoginAsync();
     }
 
+    /// <summary>
+    /// Validates the current token response to ensure authentication succeeded.
+    /// </summary>
+    /// <exception cref="Exception">
+    /// Thrown if the token response indicates an error or is missing valid token data.
+    /// </exception>
     private void ValidateTokenResponse()
     {
         if (_tokenResponse is not null and not { IsError: true }) return;
@@ -65,6 +90,15 @@ public class StellaNowAuthenticationService: IStellaNowAuthenticationService
         throw new Exception("Failed to authenticate.");
     }
 
+    /// <summary>
+    /// Retrieves the OIDC discovery document for the configured realm and caching the result.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="DiscoveryDocumentResponse"/> with the realm’s endpoints (token, authorization, etc.).
+    /// </returns>
+    /// <exception cref="Exception">
+    /// Thrown if the discovery document cannot be retrieved.
+    /// </exception>
     private async Task<DiscoveryDocumentResponse> GetDiscoveryDocumentResponse()
     {
         if (_discoveryDocumentResponse is { IsError: false })
@@ -82,6 +116,16 @@ public class StellaNowAuthenticationService: IStellaNowAuthenticationService
 
     }
 
+    /// <summary>
+    /// Performs a full login using the direct grant (resource owner password) flow.
+    /// </summary>
+    /// <remarks>
+    /// This method is only called if <see cref="RefreshTokensAsync"/> fails or if no tokens exist.
+    /// </remarks>
+    /// <returns>A <see cref="Task"/> representing the asynchronous login operation.</returns>
+    /// <exception cref="Exception">
+    /// Thrown if the login attempt fails due to invalid credentials or server errors.
+    /// </exception>
     private async Task LoginAsync()
     {
         _logger?.LogInformation("Attempting to Authentication");
@@ -101,6 +145,19 @@ public class StellaNowAuthenticationService: IStellaNowAuthenticationService
         _logger?.LogInformation("Authentication Successful");
     }
 
+    /// <summary>
+    /// Attempts to refresh the existing access token if one is available and valid.
+    /// </summary>
+    /// <remarks>
+    /// If the current token response is null or invalid, this method will return <c>false</c> immediately,
+    /// signaling that a new login is required.
+    /// </remarks>
+    /// <returns>
+    /// <c>true</c> if the refresh was successful; otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="Exception">
+    /// Thrown if the refresh token is invalid or the refresh attempt fails.
+    /// </exception>
     private async Task<bool> RefreshTokensAsync()
     {
         _logger?.LogInformation("Attempting Token Refresh");
@@ -123,6 +180,7 @@ public class StellaNowAuthenticationService: IStellaNowAuthenticationService
         return true;
     }
 
+    /// <inheritdoc />
     public StellaNowAuthenticationResult GetAuthenticationData()
     {
         return new StellaNowAuthTokenResult(_tokenResponse?.AccessToken);

@@ -24,11 +24,22 @@ using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
+/// <summary>
+/// Provides a connection strategy for MQTT using a username and password.
+/// </summary>
+/// <remarks>
+/// This strategy is suitable for brokers configured with basic authentication.
+/// </remarks>
 public class UserPassAuthMqttConnectionStrategy : IMqttConnectionStrategy
 {
     private readonly StellaNowEnvironmentConfig _envConfig;
     private readonly UserPassAuthCredentials _credentials;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UserPassAuthMqttConnectionStrategy"/> class.
+    /// </summary>
+    /// <param name="credentials">Contains the username and password for MQTT authentication.</param>
+    /// <param name="envConfig">Environment configuration containing broker URLs.</param>
     public UserPassAuthMqttConnectionStrategy(
         UserPassAuthCredentials credentials,
         StellaNowEnvironmentConfig envConfig)
@@ -37,6 +48,7 @@ public class UserPassAuthMqttConnectionStrategy : IMqttConnectionStrategy
         _credentials = credentials;
     }
 
+    /// <inheritdoc />
     public async Task ConnectAsync(IMqttClient client, string clientId)
     {
         var options = new MqttClientOptionsBuilder()

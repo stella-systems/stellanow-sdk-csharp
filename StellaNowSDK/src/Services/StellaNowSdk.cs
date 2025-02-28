@@ -27,6 +27,14 @@ using StellaNowSDK.Types;
 
 namespace StellaNowSDK.Services;
 
+/// <summary>
+/// Default implementation of the <see cref="IStellaNowSdk"/> interface, orchestrating
+/// message dispatch, connection events, and queue management.
+/// </summary>
+/// <remarks>
+/// This class coordinates the sink (e.g. MQTT connection) and a message queue to ensure reliable 
+/// message sending to the StellaNow platform. It also exposes events for connection status changes.
+/// </remarks>
 public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
 {
     private readonly ILogger<IStellaNowSdk>? _logger;
@@ -36,11 +44,22 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
     private readonly IStellaNowSink _sink;
     private readonly IStellaNowMessageQueue _messageQueue;
     
+    /// <inheritdoc />
     public event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
+    
+    /// <inheritdoc />
     public event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
     
+    /// <inheritdoc />
     public bool IsConnected => _sink?.IsConnected ?? false;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StellaNowSdk"/> class.
+    /// </summary>
+    /// <param name="logger">Logger for diagnostic messages and errors.</param>
+    /// <param name="sink">The sink responsible for connecting to the broker and publishing messages.</param>
+    /// <param name="messageQueue">The internal queue used to batch and dispatch messages asynchronously.</param>
+    /// <param name="config">Contains organization and project IDs for identifying events in StellaNow.</param>
     public StellaNowSdk(
         ILogger<StellaNowSdk>? logger,
         IStellaNowSink sink, 
@@ -56,6 +75,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         _sink.DisconnectedAsync += OnDisconnectedAsync;
     }
 
+    /// <inheritdoc />
     public async Task StartAsync()
     {
         _logger?.LogInformation("Starting");
@@ -63,6 +83,7 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         await _sink.StartAsync();
     }
 
+    /// <inheritdoc />
     public async Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null)
     {
         _logger?.LogInformation("Stopping");
@@ -88,11 +109,13 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         await _sink.StopAsync();
     }
 
+    /// <inheritdoc />
     public void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null)
     {
         SendMessage(new StellaNowMessageWrapper(message), callback);
     }
     
+    /// <inheritdoc />
     public void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null)
     {
         var entityId = message.Metadata.EntityTypeIds!.FirstOrDefault()?.EntityId;
@@ -113,16 +136,22 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         );
     }
 
+    /// <inheritdoc />
     public bool HasMessagesPendingForDispatch()
     {
         return !_messageQueue.IsQueueEmpty();
     }
 
+    /// <inheritdoc />
     public int MessagesPendingForDispatchCount()
     {
         return _messageQueue.GetMessageCountOnQueue();
     }
     
+    /// <summary>
+    /// Internal handler for when the sink connects, raising the <see cref="ConnectedAsync"/> event.
+    /// </summary>
+    /// <param name="e">Connection event arguments.</param>
     private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
     {
         if (ConnectedAsync is { } handler)
@@ -130,6 +159,11 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
             await handler(e);
         }
     }
+
+    /// <summary>
+    /// Internal handler for when the sink disconnects, raising the <see cref="DisconnectedAsync"/> event.
+    /// </summary>
+    /// <param name="e">Disconnection event arguments.</param>
 
     private async Task OnDisconnectedAsync(StellaNowDisconnectedEventArgs e)
     {
@@ -139,6 +173,9 @@ public sealed class StellaNowSdk: IStellaNowSdk, IDisposable
         }
     }
     
+    /// <summary>
+    /// Unsubscribes from sink events and releases resources used by this SDK.
+    /// </summary>
     public void Dispose()
     {
         _logger?.LogDebug("Disposing");

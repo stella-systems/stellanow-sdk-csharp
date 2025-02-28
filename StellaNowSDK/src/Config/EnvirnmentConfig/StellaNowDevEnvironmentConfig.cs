@@ -20,8 +20,17 @@
 
 namespace StellaNowSDK.Config.EnvirnmentConfig;
 
+/// <summary>
+/// Development environment configuration pointing to dev StellaNow endpoints.
+/// </summary>
+/// <remarks>
+/// Uses a dev API base URL and a WebSocket-secured MQTT broker URL on the dev environment.
+/// </remarks>
 public class StellaNowDevEnvironmentConfig : StellaNowEnvironmentConfig
 {
+    /// <inheritdoc/>
     protected override string ApiBaseUrl => "https://api.dev.stella.cloud";
+    
+    /// <inheritdoc/>
     public override string BrokerUrl => "wss://ingestor.dev.stella.cloud:8083/mqtt";
 }

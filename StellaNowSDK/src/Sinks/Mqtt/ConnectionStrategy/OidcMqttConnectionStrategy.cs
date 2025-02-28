@@ -24,11 +24,25 @@ using StellaNowSDK.Config.EnvirnmentConfig;
 
 namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
+/// <summary>
+/// Provides a connection strategy for MQTT using OIDC (OpenID Connect) authentication.
+/// </summary>
+/// <remarks>
+/// This class relies on an <see cref="IStellaNowAuthenticationService"/> to acquire an access token 
+/// which is then used as the MQTT username and password.
+/// </remarks>
 public class OidcMqttConnectionStrategy : IMqttConnectionStrategy
 {
     private readonly IStellaNowAuthenticationService _authService;
     private readonly StellaNowEnvironmentConfig _envConfig;
         
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OidcMqttConnectionStrategy"/> class.
+    /// </summary>
+    /// <param name="authService">
+    /// The service responsible for OIDC authentication (obtaining and refreshing tokens).
+    /// </param>
+    /// <param name="envConfig">Environment configuration containing broker URLs.</param>
     public OidcMqttConnectionStrategy(
         StellaNowAuthenticationService authService,
         StellaNowEnvironmentConfig envConfig)
@@ -37,6 +51,7 @@ public class OidcMqttConnectionStrategy : IMqttConnectionStrategy
         _envConfig = envConfig;
     }
 
+    /// <inheritdoc />
     public async Task ConnectAsync(IMqttClient client, string clientId)
     {
         await _authService.AuthenticateAsync();

@@ -20,8 +20,17 @@
 
 namespace StellaNowSDK.Config.EnvirnmentConfig;
 
+/// <summary>
+/// Production environment configuration pointing to production StellaNow endpoints.
+/// </summary>
+/// <remarks>
+/// Uses a production API base URL and a WebSocket-secured MQTT broker URL on the production environment.
+/// </remarks>
 public class StellaNowProdEnvironmentConfig : StellaNowEnvironmentConfig
 {
+    /// <inheritdoc/>
     protected override string ApiBaseUrl => "https://api.prod.stella.cloud";
+    
+    /// <inheritdoc/>
     public override string BrokerUrl => "wss://ingestor.prod.stella.cloud:8083/mqtt";
 }

@@ -20,6 +20,18 @@
 
 namespace StellaNowSDK.Authentication;
 
+/// <summary>
+/// Base class for representing StellaNow authentication results.
+/// </summary>
+/// <remarks>
+/// Derived classes encapsulate specific authentication outcome data (e.g., tokens).
+/// </remarks>
 public abstract record StellaNowAuthenticationResult;
 
+/// <summary>
+/// Represents an authentication result containing an OIDC access token.
+/// </summary>
+/// <param name="AccessToken">
+/// The bearer token retrieved from the OIDC provider (e.g., Keycloak).
+/// </param>
 public record StellaNowAuthTokenResult(string AccessToken) : StellaNowAuthenticationResult;

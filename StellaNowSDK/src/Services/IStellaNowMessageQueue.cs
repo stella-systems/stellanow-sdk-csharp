@@ -22,11 +22,48 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Services;
 
+/// <summary>
+/// Defines a queue for managing and dispatching <see cref="StellaNowEventWrapper"/> messages.
+/// </summary>
+/// <remarks>
+/// Implementations should handle asynchronous message processing, allowing messages to be enqueued
+/// and later sent to a sink (e.g., MQTT). The queue may implement strategies for ordering (FIFO/LIFO)
+/// or persistance and can be started or stopped on demand.
+/// </remarks>
 public interface IStellaNowMessageQueue : IDisposable
 {
+    /// <summary>
+    /// Begins processing enqueued messages in the background.
+    /// </summary>
+    /// <remarks>
+    /// Typically spawns a task that dequeues messages and sends them to the sink. 
+    /// If already running, this method may be a no-op or restart processing if the queue has stopped.
+    /// </remarks>
     void StartProcessing();
+    
+    /// <summary>
+    /// Stops processing messages, causing the queue to cease dequeuing and dispatching.
+    /// </summary>
+    /// <remarks>
+    /// Typically implemented by canceling an internal <see cref="CancellationTokenSource"/>.
+    /// </remarks>
     void StopProcessing();
+    
+    /// <summary>
+    /// Enqueues a <see cref="StellaNowEventWrapper"/> message for later dispatch.
+    /// </summary>
+    /// <param name="message">The event wrapper to add to the queue.</param>
     void EnqueueMessage(StellaNowEventWrapper message);
+    
+    /// <summary>
+    /// Checks whether the queue is empty.
+    /// </summary>
+    /// <returns><c>true</c> if no messages are waiting; otherwise, <c>false</c>.</returns>
     bool IsQueueEmpty();
+    
+    /// <summary>
+    /// Retrieves the current number of messages waiting in the queue.
+    /// </summary>
+    /// <returns>The count of enqueued messages.</returns>
     int GetMessageCountOnQueue();
 }

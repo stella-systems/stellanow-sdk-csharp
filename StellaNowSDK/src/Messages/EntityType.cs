@@ -20,4 +20,14 @@
 
 namespace StellaNowSDK.Messages;
 
+/// <summary>
+/// Represents an entity reference, as expected in the metadata of the message.
+/// Including its definition ID and unique identifier.
+/// </summary>
+/// <param name="EntityTypeDefinitionId">
+/// The ID of the entity type definition in StellaNow (e.g., "patron", "device").
+/// </param>
+/// <param name="EntityId">
+/// The unique identifier for this specific entity instance.
+/// </param>
 public record EntityType (string EntityTypeDefinitionId, string EntityId);

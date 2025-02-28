@@ -23,16 +23,43 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Sinks;
 
+/// <summary>
+/// Defines a sink for sending messages to the StellaNow platform, as well as 
+/// starting and stopping connections to a message broker.
+/// </summary>
 public interface IStellaNowSink
 {
+    /// <summary>
+    /// Raised when the sink successfully connects to the broker.
+    /// </summary>
     event Func<StellaNowConnectedEventArgs, Task> ConnectedAsync;
+    
+    /// <summary>
+    /// Raised when the sink disconnects from the broker.
+    /// </summary>
     event Func<StellaNowDisconnectedEventArgs, Task> DisconnectedAsync;
     
+    /// <summary>
+    /// Indicates whether the sink is currently connected to the broker.
+    /// </summary>
     bool IsConnected { get; }
     
+    /// <summary>
+    /// Starts the sink, typically establishing a connection to the broker.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task StartAsync();
 
+    /// <summary>
+    /// Stops the sink, disconnecting from the broker.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task StopAsync();
 
+    /// <summary>
+    /// Sends a StellaNow event message asynchronously to the sink.
+    /// </summary>
+    /// <param name="message">The event message wrapper containing payload and metadata.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous send operation.</returns>
     Task SendMessageAsync(StellaNowEventWrapper message);
 }

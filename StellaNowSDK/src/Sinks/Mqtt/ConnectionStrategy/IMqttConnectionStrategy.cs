@@ -22,7 +22,18 @@ using MQTTnet.Client;
 
 namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
 
+/// <summary>
+/// Defines a strategy for connecting an MQTT client, possibly with different 
+/// authentication mechanisms (no-auth, user/pass, OIDC).
+/// </summary>
 public interface IMqttConnectionStrategy
 {
+    /// <summary>
+    /// Connects the specified <paramref name="client"/> using 
+    /// a particular strategy (e.g., no auth, OIDC, user/pass).
+    /// </summary>
+    /// <param name="client">The MQTT client to connect.</param>
+    /// <param name="clientId">The unique client ID for the MQTT session.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous connect operation.</returns>
     Task ConnectAsync(IMqttClient client, string clientId);
 }

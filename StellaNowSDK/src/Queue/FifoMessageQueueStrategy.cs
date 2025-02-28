@@ -23,25 +23,35 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Queue;
 
+/// <summary>
+/// A first-in, first-out (FIFO) queue strategy for storing <see cref="StellaNowEventWrapper"/> messages.
+/// </summary>
+/// <remarks>
+/// Internally uses a <see cref="ConcurrentQueue{T}"/> to ensure thread-safe enqueue/dequeue operations.
+/// </remarks>
 public sealed class FifoMessageQueueStrategy : IMessageQueueStrategy
 {
-    private readonly ConcurrentQueue<StellaNowEventWrapper?> _queue = new ConcurrentQueue<StellaNowEventWrapper?>();
+    private readonly ConcurrentQueue<StellaNowEventWrapper> _queue = new ConcurrentQueue<StellaNowEventWrapper>();
 
-    public void Enqueue(StellaNowEventWrapper? message)
+    /// <inheritdoc />
+    public void Enqueue(StellaNowEventWrapper message)
     {
         _queue.Enqueue(message);
     }
 
-    public bool TryDequeue(out StellaNowEventWrapper? message)
+    /// <inheritdoc />
+    public bool TryDequeue(out StellaNowEventWrapper message)
     {
         return _queue.TryDequeue(out message);
     }
     
+    /// <inheritdoc />
     public bool IsEmpty()
     {
         return !_queue.Any();
     }
 
+    /// <inheritdoc />
     public int GetMessageCount()
     {
         return _queue.Count;
