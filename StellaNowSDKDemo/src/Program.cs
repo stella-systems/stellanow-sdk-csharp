@@ -21,7 +21,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
-using StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Config.EnvironmentConfig;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Services;
 using StellaNowSDKDemo.Messages;
@@ -118,26 +118,26 @@ internal class Program
         services.AddTransient<Program>();
 
         // Register StellaNowSdk with necessary configurations and environment.
-        // services.AddStellaNowSdkWithMqttAndOidcAuth(
-        //     new StellaNowProdEnvironmentConfig(),
-        //     new StellaNowConfig(
-        //         Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
-        //         Environment.GetEnvironmentVariable("PROJECT_ID")!
-        //     ),
-        //     new OidcAuthCredentials(
-        //         Environment.GetEnvironmentVariable("OIDC_USERNAME"),
-        //         Environment.GetEnvironmentVariable("OIDC_PASSWORD")!
-        //     )
-        // );
-        
-        // ALTERNATIVE: Register StellaNowSdk for operations with no authentication, such as local NanoMQ broker.
-        services.AddStellaNowSdkWithMqttAndNoAuth(
-            new StellaNowLocalEnvironmentConfig(),
+        services.AddStellaNowSdkWithMqttAndOidcAuth(
+            new StellaNowProdEnvironmentConfig(),
             new StellaNowConfig(
                 Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
                 Environment.GetEnvironmentVariable("PROJECT_ID")!
+            ),
+            new OidcAuthCredentials(
+                Environment.GetEnvironmentVariable("OIDC_USERNAME"),
+                Environment.GetEnvironmentVariable("OIDC_PASSWORD")!
             )
         );
+        
+        // ALTERNATIVE: Register StellaNowSdk for operations with no authentication, such as local NanoMQ broker.
+        // services.AddStellaNowSdkWithMqttAndNoAuth(
+        //     new StellaNowLocalEnvironmentConfig(),
+        //     new StellaNowConfig(
+        //         Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+        //         Environment.GetEnvironmentVariable("PROJECT_ID")!
+        //     )
+        // );
 
         // Build the service provider from the service collection.
         _serviceProvider = services.BuildServiceProvider();

@@ -18,30 +18,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Authentication;
+namespace StellaNowSDK.Config.EnvironmentConfig;
 
 /// <summary>
-/// Defines the contract for StellaNow authentication services.
+/// Production environment configuration pointing to production StellaNow endpoints.
 /// </summary>
 /// <remarks>
-/// An implementation is responsible for logging in, refreshing tokens, and
-/// retrieving the current authentication state (e.g., access tokens).
+/// Uses a production API base URL and a WebSocket-secured MQTT broker URL on the production environment.
 /// </remarks>
-public interface IStellaNowAuthenticationService
+public class StellaNowProdEnvironmentConfig : StellaNowEnvironmentConfig
 {
-    /// <summary>
-    /// Performs an authentication flow if necessary.
-    /// </summary>
-    /// <remarks>
-    /// Implementations may first attempt to refresh existing tokens; if that fails,
-    /// they will initiate a new login process.
-    /// </remarks>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task AuthenticateAsync();
+    /// <inheritdoc/>
+    protected override string ApiBaseUrl => "https://api.prod.stella.cloud";
     
-    /// <summary>
-    /// Retrieves the latest authentication data (e.g., an access token).
-    /// </summary>
-    /// <returns>A <see cref="StellaNowAuthenticationResult"/> containing token details.</returns>
-    StellaNowAuthenticationResult GetAuthenticationData();
+    /// <inheritdoc/>
+    public override string BrokerUrl => "wss://ingestor.prod.stella.cloud:8083/mqtt";
 }

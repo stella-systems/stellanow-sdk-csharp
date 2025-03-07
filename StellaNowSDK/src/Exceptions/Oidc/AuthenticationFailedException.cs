@@ -18,39 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using MQTTnet.Client;
-using StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Exceptions;
 
-namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
+namespace StellaNowSDK.Exceptions.Oidc;
 
 /// <summary>
-/// Provides a connection strategy for MQTT that does not require authentication.
+/// Thrown when authentication with the OIDC provider fails.
 /// </summary>
-/// <remarks>
-/// Suitable for local development or brokers configured without credentials.
-/// </remarks>
-public class NoAuthMqttConnectionStrategy : IMqttConnectionStrategy
+public class AuthenticationFailedException : StellaNowException
 {
-    private readonly StellaNowEnvironmentConfig _envConfig;
-    
-    /// <summary>
-    /// Initializes a new instance of the <see cref="NoAuthMqttConnectionStrategy"/> class.
-    /// </summary>
-    /// <param name="envConfig">Environment configuration containing broker URLs.</param>
-    public NoAuthMqttConnectionStrategy(
-        StellaNowEnvironmentConfig envConfig)
+    public string ErrorCode { get; }
+
+    public AuthenticationFailedException(string message, string errorCode) 
+        : base(message)
     {
-        _envConfig = envConfig;
+        ErrorCode = errorCode;
     }
 
-    /// <inheritdoc />
-    public async Task ConnectAsync(IMqttClient client, string clientId)
+    public AuthenticationFailedException(string message, string errorCode, Exception innerException) 
+        : base(message, innerException)
     {
-        var options = new MqttClientOptionsBuilder()
-            .WithClientId(clientId)
-            .WithConnectionUri(_envConfig.BrokerUrl)
-            .Build();
-
-        await client.ConnectAsync(options);
+        ErrorCode = errorCode;
     }
 }

@@ -31,24 +31,25 @@ namespace StellaNowSDK.Queue;
 /// </remarks>
 public sealed class FifoMessageQueueStrategy : IMessageQueueStrategy
 {
-    private readonly ConcurrentQueue<StellaNowEventWrapper> _queue = new ConcurrentQueue<StellaNowEventWrapper>();
+    private readonly ConcurrentQueue<StellaNowEventWrapper> _queue = new();
 
     /// <inheritdoc />
     public void Enqueue(StellaNowEventWrapper message)
     {
+        ArgumentNullException.ThrowIfNull(message);
         _queue.Enqueue(message);
     }
 
     /// <inheritdoc />
-    public bool TryDequeue(out StellaNowEventWrapper message)
+    public bool TryDequeue(out StellaNowEventWrapper? message)
     {
         return _queue.TryDequeue(out message);
     }
-    
+
     /// <inheritdoc />
     public bool IsEmpty()
     {
-        return !_queue.Any();
+        return _queue.IsEmpty; // Use IsEmpty property for better performance
     }
 
     /// <inheritdoc />

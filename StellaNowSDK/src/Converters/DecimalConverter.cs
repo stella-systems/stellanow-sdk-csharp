@@ -38,7 +38,7 @@ public class DecimalConverter : JsonConverter<decimal>
     public override void WriteJson(JsonWriter writer, decimal value, JsonSerializer serializer)
     {
         // Format the decimal value as a string with 2 decimal places
-        writer.WriteValue(value.ToString("F2", CultureInfo.InvariantCulture));
+        writer.WriteValue(value.ToString("F8", CultureInfo.InvariantCulture));
     }
 
     /// <summary>

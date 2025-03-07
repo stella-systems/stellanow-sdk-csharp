@@ -18,19 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Exceptions;
+
+namespace StellaNowSDK.Exceptions.Oidc;
 
 /// <summary>
-/// Development environment configuration pointing to dev StellaNow endpoints.
+/// Thrown when the OIDC discovery document cannot be retrieved from the provider.
 /// </summary>
-/// <remarks>
-/// Uses a dev API base URL and a WebSocket-secured MQTT broker URL on the dev environment.
-/// </remarks>
-public class StellaNowDevEnvironmentConfig : StellaNowEnvironmentConfig
+public class DiscoveryDocumentRetrievalException : StellaNowException
 {
-    /// <inheritdoc/>
-    protected override string ApiBaseUrl => "https://api.dev.stella.cloud";
-    
-    /// <inheritdoc/>
-    public override string BrokerUrl => "wss://ingestor.dev.stella.cloud:8083/mqtt";
+    public string DiscoveryDocumentUrl { get; }
+
+    public DiscoveryDocumentRetrievalException(string message, string discoveryDocumentUrl) 
+        : base(message)
+    {
+        DiscoveryDocumentUrl = discoveryDocumentUrl;
+    }
+
+    public DiscoveryDocumentRetrievalException(string message, string discoveryDocumentUrl, Exception innerException) 
+        : base(message, innerException)
+    {
+        DiscoveryDocumentUrl = discoveryDocumentUrl;
+    }
 }

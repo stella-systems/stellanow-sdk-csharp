@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2025 Stella Technologies (UK) Limited.
+// Copyright (C) 2023-2025 Stella Technologies (UK) Limited.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,17 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
+using MQTTnet.Exceptions;
 using MQTTnet.Protocol;
 using NanoidDotNet;
+
 using StellaNowSDK.Config;
+using StellaNowSDK.Config.EnvironmentConfig;
 using StellaNowSDK.Events;
+using StellaNowSDK.Exceptions;
+using StellaNowSDK.Exceptions.Sinks.Mqtt;
 using StellaNowSDK.Messages;
-using StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
+using StellaNowSDK.Sinks.Mqtt.AuthStrategy;
 
 namespace StellaNowSDK.Sinks.Mqtt;
 
@@ -36,214 +41,260 @@ namespace StellaNowSDK.Sinks.Mqtt;
 /// and message publishing to the broker.
 /// </summary>
 /// <remarks>
-/// Uses a specified <see cref="IMqttConnectionStrategy"/> to handle authentication 
+/// Uses a specified <see cref="IMqttAuthStrategy"/> to handle authentication 
 /// or no-auth connections, and manages reconnection if the broker disconnects.
 /// </remarks>
 public sealed class StellaNowMqttSink : IStellaNowSink, IDisposable
 {
-    private ILogger<IStellaNowSink>? _logger;
-
+    private readonly ILogger<StellaNowMqttSink> _logger;
     private readonly IMqttClient _mqttClient;
-    
-    /// <summary>
-    /// Gets the unique MQTT client ID used when connecting to the broker.
-    /// </summary>
-    public string MqttClientId { get; }
-    
-    private readonly IMqttConnectionStrategy _mqttConnectionStrategy;
-
-    private readonly StellaNowConfig _config;
-    
+    private readonly IMqttAuthStrategy _mqttAuthStrategy;
+    private readonly StellaNowEnvironmentConfig _envConfig;
     private readonly string _topic;
-    
-    /// <inheritdoc />
+    private readonly object _lockObject = new(); // For thread safety
+
+    public string MqttClientId { get; }
     public bool IsConnected => _mqttClient.IsConnected;
-    
-    /// <summary>
-    /// Occurs when the sink successfully connects to the broker.
-    /// </summary>
     public event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
-    
-    /// <summary>
-    /// Occurs when the sink disconnects from the broker.
-    /// </summary>
     public event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
-    
+
     private CancellationTokenSource? _reconnectCancellationTokenSource;
-    
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StellaNowMqttSink"/> class.
-    /// </summary>
-    /// <param name="logger">Logger for diagnostic messages and errors.</param>
-    /// <param name="connectionStrategy">
-    /// Strategy for connecting to the MQTT broker (no-auth, OIDC, user/pass).
-    /// </param>
-    /// <param name="config">
-    /// Contains organization and project IDs, used to build the topic path.
-    /// </param>
+    private Task? _reconnectMonitorTask; // Store the monitor task for shutdown
+    private const int BaseReconnectDelaySeconds = 5;
+    private const int MaxReconnectDelaySeconds = 60;
+
     public StellaNowMqttSink(
-        ILogger<StellaNowMqttSink>? logger,
-        IMqttConnectionStrategy connectionStrategy,
-        StellaNowConfig config)
+        ILogger<StellaNowMqttSink> logger,
+        IMqttAuthStrategy authStrategy,
+        StellaNowConfig stellaNowConfig,
+        StellaNowEnvironmentConfig envConfig,
+        string? clientId = null)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(authStrategy);
+        ArgumentNullException.ThrowIfNull(stellaNowConfig);
+        ArgumentNullException.ThrowIfNull(envConfig);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stellaNowConfig.organizationId, nameof(stellaNowConfig.organizationId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(envConfig.BrokerUrl, nameof(envConfig.BrokerUrl));
+        if (!Uri.TryCreate(envConfig.BrokerUrl, UriKind.Absolute, out _))
+            throw new ArgumentException("Broker URL is not a valid URI", nameof(envConfig.BrokerUrl));
+
         _logger = logger;
-        _mqttConnectionStrategy = connectionStrategy;
-        _config = config;
-            
-        _topic = "in/" + _config.organizationId;
-        
-        MqttClientId = $"StellaNowSDK_{Nanoid.Generate(size: 10)}";
-        
+        _mqttAuthStrategy = authStrategy;
+        _envConfig = envConfig;
+        _topic = $"in/{stellaNowConfig.organizationId}";
+
+        MqttClientId = string.IsNullOrWhiteSpace(clientId)
+            ? $"StellaNowSDK_{Nanoid.Generate(size: 10)}"
+            : clientId.Trim();
+
         var factory = new MqttFactory();
         _mqttClient = factory.CreateMqttClient();
-        
-        _mqttClient.ConnectedAsync += async (args) => await OnConnectedAsync(new StellaNowConnectedEventArgs());
-        _mqttClient.DisconnectedAsync += async (args) => await OnDisconnectedAsync(new StellaNowDisconnectedEventArgs());
-        
-        _logger.LogInformation($"SDK Client ID is \"{MqttClientId}\"");
+
+        _mqttClient.ConnectedAsync += OnConnectedAsync;
+        _mqttClient.DisconnectedAsync += OnDisconnectedAsync;
+
+        _logger.LogInformation("SDK Client ID is \"{ClientId}\"", MqttClientId);
     }
 
-    /// <summary>
-    /// Asynchronously raises the <see cref="ConnectedAsync"/> event when the MQTT client connects.
-    /// </summary>
-    /// <param name="e">The connection event data.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    private async Task OnConnectedAsync(StellaNowConnectedEventArgs e)
+    private async Task OnConnectedAsync(MqttClientConnectedEventArgs e)
     {
-        _logger?.LogInformation("Connected");
+        _logger.LogInformation("Connected to MQTT broker");
         if (ConnectedAsync is { } handler)
-        {
-            await handler(e);
-        }
+            await handler(new StellaNowConnectedEventArgs());
     }
 
-    /// <summary>
-    /// Asynchronously raises the <see cref="DisconnectedAsync"/> event when the MQTT client disconnects.
-    /// </summary>
-    /// <param name="e">The disconnection event data.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    private async Task OnDisconnectedAsync(StellaNowDisconnectedEventArgs e)
+    private async Task OnDisconnectedAsync(MqttClientDisconnectedEventArgs e)
     {
-        _logger?.LogInformation("Disconnected");
+        _logger.LogInformation("Disconnected from MQTT broker");
         if (DisconnectedAsync is { } handler)
+            await handler(new StellaNowDisconnectedEventArgs());
+    }
+
+    private async Task ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        try
         {
-            await handler(e);
+            _logger.LogInformation("Attempting to connect to MQTT broker at {BrokerUrl}", _envConfig.BrokerUrl);
+            await _mqttAuthStrategy.ConnectAsync(_mqttClient, MqttClientId);
+            _logger.LogInformation("Connected to MQTT broker at {BrokerUrl}", _envConfig.BrokerUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to MQTT broker at {BrokerUrl}", _envConfig.BrokerUrl);
+            throw;
         }
     }
 
-    /// <summary>
-    /// Starts a background task that periodically checks the MQTT connection and attempts 
-    /// to reconnect if disconnected.
-    /// </summary>
-    /// <param name="token">A <see cref="CancellationToken"/> for stopping the monitor.</param>
-    private void StartReconnectMonitor(CancellationToken token)
-    {
-        _ = Task.Run(
-            async () =>
-            {
-                _logger?.LogInformation("Started Reconnection Monitor");
-                
-                while (true)
-                {
-                    try
-                    {
-                        if (!_mqttClient.IsConnected)
-                        {
-                            await ConnectAsync();
-                        }
-                    }
-                    catch
-                    {
-                        _logger?.LogInformation("Reconnection Monitor: Unhandled Exception");
-                        // Handle the exception properly (logging etc.).
-                    }
-                    finally
-                    {
-                        // Check the connection state every 5 seconds and perform a reconnect if required.
-                        await Task.Delay(TimeSpan.FromSeconds(5), token);
-                    }
-                }
-            }, token);
-    }
-
-    /// <summary>
-    /// Establishes a connection to the MQTT broker using the configured connection strategy.
-    /// </summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous connect operation.</returns>
-    private async Task ConnectAsync()
-    {
-        _logger?.LogInformation("Connecting");
-
-        await _mqttConnectionStrategy.ConnectAsync(_mqttClient, MqttClientId);
-    }
-
-    /// <summary>
-    /// Disconnects from the MQTT broker, stopping the reconnection monitor if it is active.
-    /// </summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous disconnect operation.</returns>
     private async Task DisconnectAsync()
     {
-        _logger?.LogInformation("Disconnecting");
-        
-        if(_reconnectCancellationTokenSource is { IsCancellationRequested: false })
+        try
         {
-            _reconnectCancellationTokenSource.Cancel();
-            _reconnectCancellationTokenSource.Dispose();
-            _reconnectCancellationTokenSource = null;
+            _logger.LogInformation("Disconnecting from MQTT broker");
+            lock (_lockObject)
+            {
+                _reconnectCancellationTokenSource?.Cancel();
+                // Await the monitor task to ensure it completes
+                if (_reconnectMonitorTask is { IsCompleted: false })
+                {
+                    _reconnectMonitorTask.GetAwaiter().GetResult(); // Synchronous wait after cancellation
+                }
+                _reconnectCancellationTokenSource?.Dispose();
+                _reconnectCancellationTokenSource = null;
+                _reconnectMonitorTask = null;
+            }
+            await _mqttClient.DisconnectAsync();
+            _logger.LogInformation("Disconnected from MQTT broker");
         }
-        
-        await _mqttClient.DisconnectAsync();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to disconnect from MQTT broker at {BrokerUrl}", _envConfig.BrokerUrl);
+            throw new StellaNowException("Failed to disconnect from the MQTT broker", ex);
+        }
     }
 
-    /// <summary>
-    /// Starts the sink, which in turn starts a reconnection monitor 
-    /// to maintain a persistent connection to the broker.
-    /// </summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    private async Task StartReconnectMonitor(CancellationToken token)
+    {
+        _logger.LogInformation("Started reconnection monitor");
+        var attempt = 0;
+
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    if (!_mqttClient.IsConnected)
+                    {
+                        attempt++;
+                        _logger.LogInformation("Attempting to connect (Attempt {Attempt})", attempt);
+                        await ConnectAsync(token);
+                        attempt = 0; // Reset on success
+                    }
+                }
+                catch (MqttConnectionException ex)
+                {
+                    _logger.LogError(ex, "Connection attempt {Attempt} failed due to a connection error", attempt);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Connection attempt {Attempt} failed due to an unexpected error", attempt);
+                }
+
+                var delaySeconds = Math.Min(BaseReconnectDelaySeconds * Math.Pow(2, attempt - 1), MaxReconnectDelaySeconds);
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds), token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Reconnection monitor cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in reconnection monitor");
+            throw; // Propagate to the continuation
+        }
+    }
+
+    /// <inheritdoc />
     public async Task StartAsync()
     {
-        _reconnectCancellationTokenSource = new CancellationTokenSource();
-        StartReconnectMonitor(_reconnectCancellationTokenSource.Token);
+        lock (_lockObject)
+        {
+            if (_reconnectCancellationTokenSource != null)
+                throw new InvalidOperationException("Sink is already started");
+
+            _reconnectCancellationTokenSource = new CancellationTokenSource();
+        }
+
+        // Start the monitor immediately, which will handle the initial connection
+        _reconnectMonitorTask = StartReconnectMonitor(_reconnectCancellationTokenSource.Token)
+            .ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                {
+                    _logger.LogError(t.Exception, "Reconnection monitor failed unexpectedly");
+                }
+            }, TaskContinuationOptions.OnlyOnFaulted);
+
+        // Wait for a short period to give the initial connection a chance to succeed
+        var initialConnectTimeout = TimeSpan.FromSeconds(5);
+        var startTime = DateTime.UtcNow;
+        while (DateTime.UtcNow - startTime < initialConnectTimeout)
+        {
+            if (_mqttClient.IsConnected)
+            {
+                _logger.LogInformation("Initial connection established successfully");
+                break;
+            }
+            await Task.Delay(500); // Check every 500ms
+        }
+
+        // If not connected yet, the monitor will keep trying
+        if (!_mqttClient.IsConnected)
+        {
+            _logger.LogWarning("Initial connection attempt did not succeed within {TimeoutSeconds} seconds. The reconnection monitor will continue trying in the background", initialConnectTimeout.TotalSeconds);
+        }
     }
-    
-    /// <summary>
-    /// Stops the sink, cancelling any reconnection attempts and disconnecting from the broker.
-    /// </summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+
+    /// <inheritdoc />
     public async Task StopAsync()
     {
         await DisconnectAsync();
     }
 
-    /// <summary>
-    /// Sends a StellaNow event message to the broker by publishing it to the configured topic.
-    /// </summary>
-    /// <param name="message">The event wrapper containing the message payload and metadata.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous publish operation.</returns>
+    /// <inheritdoc />
     public async Task SendMessageAsync(StellaNowEventWrapper message)
     {
-        _logger?.LogDebug("Sending Message: {Message}", message.Value.Metadata.MessageId);
+        ArgumentNullException.ThrowIfNull(message);
+
+        if (!IsConnected)
+            throw new MqttConnectionException("Cannot send message: Sink is not connected", _envConfig.BrokerUrl);
+
+        _logger.LogDebug("Sending message with ID: {MessageId}", message.Value.Metadata.MessageId);
 
         var messageBytes = Encoding.UTF8.GetBytes(message.ToString());
-        
         var mqttMessage = new MqttApplicationMessageBuilder()
             .WithTopic(_topic)
             .WithPayload(messageBytes)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
 
-        await _mqttClient.PublishAsync(mqttMessage);
-        
-        message.Callback?.Invoke(message);
+        try
+        {
+            await _mqttClient.PublishAsync(mqttMessage);
+            message.Callback?.Invoke(message);
+            _logger.LogDebug("Message with ID {MessageId} sent successfully", message.Value.Metadata.MessageId);
+        }
+        catch (MqttCommunicationException ex)
+        {
+            _logger.LogError(ex, "Failed to send message with ID {MessageId} due to a communication error", message.Value.Metadata.MessageId);
+            throw new MqttConnectionException("Failed to send message to the MQTT broker", _envConfig.BrokerUrl, ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while sending message with ID {MessageId}", message.Value.Metadata.MessageId);
+            throw new StellaNowException("Unexpected error while sending message to the MQTT broker", ex);
+        }
     }
-    
-    /// <summary>
-    /// Disposes of resources used by this sink, including cancelling reconnection tasks.
-    /// </summary>
+
+    /// <inheritdoc />
     public void Dispose()
     {
-        _logger?.LogDebug("Disposing");
-        _reconnectCancellationTokenSource?.Cancel();
-        _reconnectCancellationTokenSource?.Dispose();
+        _logger.LogDebug("Disposing StellaNowMqttSink");
+        lock (_lockObject)
+        {
+            _reconnectCancellationTokenSource?.Cancel();
+            if (_reconnectMonitorTask is { IsCompleted: false })
+            {
+                _reconnectMonitorTask.GetAwaiter().GetResult(); // Wait for the task to complete
+            }
+            _reconnectCancellationTokenSource?.Dispose();
+            _reconnectCancellationTokenSource = null;
+            _reconnectMonitorTask = null;
+        }
+        _mqttClient.ConnectedAsync -= OnConnectedAsync;
+        _mqttClient.DisconnectedAsync -= OnDisconnectedAsync;
+        _mqttClient.Dispose();
     }
 }

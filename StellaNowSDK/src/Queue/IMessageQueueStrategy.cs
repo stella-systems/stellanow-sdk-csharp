@@ -27,15 +27,17 @@ namespace StellaNowSDK.Queue;
 /// </summary>
 /// <remarks>
 /// Different implementations can store messages in various data structures or orders (e.g., FIFO, LIFO).
+/// Implementations should be thread-safe for concurrent access.
 /// </remarks>
 public interface IMessageQueueStrategy
 {
     /// <summary>
     /// Enqueues the specified <see cref="StellaNowEventWrapper"/> message into the queue.
     /// </summary>
-    /// <param name="message">The message to be queued.</param>
+    /// <param name="message">The message to be queued. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="message"/> is null.</exception>
     void Enqueue(StellaNowEventWrapper message);
-    
+
     /// <summary>
     /// Attempts to dequeue a <see cref="StellaNowEventWrapper"/> from the queue.
     /// </summary>
@@ -45,14 +47,14 @@ public interface IMessageQueueStrategy
     /// <returns>
     /// <c>true</c> if a message was successfully dequeued; <c>false</c> if the queue was empty.
     /// </returns>
-    bool TryDequeue(out StellaNowEventWrapper message);
-    
+    bool TryDequeue(out StellaNowEventWrapper? message);
+
     /// <summary>
     /// Indicates whether the queue is currently empty.
     /// </summary>
     /// <returns><c>true</c> if the queue is empty; otherwise, <c>false</c>.</returns>
     bool IsEmpty();
-    
+
     /// <summary>
     /// Gets the number of messages currently in the queue.
     /// </summary>

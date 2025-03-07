@@ -41,6 +41,7 @@
 
     <ItemGroup>
       <Folder Include="src\Config\Credentials\" />
+      <Folder Include="src\Exceptions\Sinks\" />
     </ItemGroup>
 
 </Project>

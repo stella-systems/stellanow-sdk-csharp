@@ -18,7 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Config.EnvirnmentConfig;
+namespace StellaNowSDK.Config.EnvironmentConfig;
 
 /// <summary>
 /// Base class for environment-specific configuration in StellaNow.

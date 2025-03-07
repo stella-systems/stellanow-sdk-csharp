@@ -18,20 +18,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Authentication;
+namespace StellaNowSDK.Config.EnvironmentConfig;
 
 /// <summary>
-/// Base class for representing StellaNow authentication results.
+/// Development environment configuration pointing to dev StellaNow endpoints.
 /// </summary>
 /// <remarks>
-/// Derived classes encapsulate specific authentication outcome data (e.g., tokens).
+/// Uses a dev API base URL and a WebSocket-secured MQTT broker URL on the dev environment.
 /// </remarks>
-public abstract record StellaNowAuthenticationResult;
-
-/// <summary>
-/// Represents an authentication result containing an OIDC access token.
-/// </summary>
-/// <param name="AccessToken">
-/// The bearer token retrieved from the OIDC provider (e.g., Keycloak).
-/// </param>
-public record StellaNowAuthTokenResult(string AccessToken) : StellaNowAuthenticationResult;
+public class StellaNowDevEnvironmentConfig : StellaNowEnvironmentConfig
+{
+    /// <inheritdoc/>
+    protected override string ApiBaseUrl => "https://api.dev.stella.cloud";
+    
+    /// <inheritdoc/>
+    public override string BrokerUrl => "wss://ingestor.dev.stella.cloud:8083/mqtt";
+}

@@ -28,42 +28,46 @@ namespace StellaNowSDK.Services;
 /// <remarks>
 /// Implementations should handle asynchronous message processing, allowing messages to be enqueued
 /// and later sent to a sink (e.g., MQTT). The queue may implement strategies for ordering (FIFO/LIFO)
-/// or persistance and can be started or stopped on demand.
+/// or persistence and can be started or stopped on demand. Implementations should be thread-safe
+/// when accessed concurrently.
 /// </remarks>
 public interface IStellaNowMessageQueue : IDisposable
 {
     /// <summary>
     /// Begins processing enqueued messages in the background.
     /// </summary>
-    /// <remarks>
-    /// Typically spawns a task that dequeues messages and sends them to the sink. 
-    /// If already running, this method may be a no-op or restart processing if the queue has stopped.
-    /// </remarks>
-    void StartProcessing();
-    
+    /// <returns>A <see cref="Task"/> representing the asynchronous start operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the queue is already started or has been disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the queue has been disposed.</exception>
+    Task StartProcessingAsync();
+
     /// <summary>
     /// Stops processing messages, causing the queue to cease dequeuing and dispatching.
     /// </summary>
-    /// <remarks>
-    /// Typically implemented by canceling an internal <see cref="CancellationTokenSource"/>.
-    /// </remarks>
-    void StopProcessing();
-    
+    /// <returns>A <see cref="Task"/> representing the asynchronous stop operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the queue is not started.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the queue has been disposed.</exception>
+    Task StopProcessingAsync();
+
     /// <summary>
     /// Enqueues a <see cref="StellaNowEventWrapper"/> message for later dispatch.
     /// </summary>
-    /// <param name="message">The event wrapper to add to the queue.</param>
+    /// <param name="message">The event wrapper to add to the queue. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="message"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the queue has been disposed.</exception>
     void EnqueueMessage(StellaNowEventWrapper message);
-    
+
     /// <summary>
     /// Checks whether the queue is empty.
     /// </summary>
     /// <returns><c>true</c> if no messages are waiting; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the queue has been disposed.</exception>
     bool IsQueueEmpty();
-    
+
     /// <summary>
     /// Retrieves the current number of messages waiting in the queue.
     /// </summary>
     /// <returns>The count of enqueued messages.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the queue has been disposed.</exception>
     int GetMessageCountOnQueue();
 }
