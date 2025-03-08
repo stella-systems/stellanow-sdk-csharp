@@ -20,6 +20,17 @@
 
 namespace StellaNowSDK.Messages;
 
+/// <summary>
+/// Base class for all StellaNow messages, including an event type definition ID and
+/// associated entity references.
+/// </summary>
+/// <remarks>
+/// Derived classes typically add fields corresponding to specific events.
+/// </remarks>
+/// <param name="EventTypeDefinitionId">The StellaNow event type definition ID (e.g., "user_login").</param>
+/// <param name="EntityTypeIds">
+/// A list of entity references that identify which entities this message pertains to.
+/// </param>
 public record StellaNowMessageBase(
     [property: Newtonsoft.Json.JsonIgnore] string EventTypeDefinitionId, 
     [property: Newtonsoft.Json.JsonIgnore] List<EntityType> EntityTypeIds

@@ -21,13 +21,19 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using StellaNowSDK.Config;
-using StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Config.EnvironmentConfig;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Services;
 using StellaNowSDKDemo.Messages;
 using StellaNowSDKDemo.Messages.Models;
 
 namespace StellaNowSDKDemo;
+
+public class StellaNowLocalEnvironmentConfig : StellaNowEnvironmentConfig
+{
+    protected override string ApiBaseUrl => "https://api.dev.stella.cloud";
+    public override string BrokerUrl => "mqtt://localhost:1883";
+}
 
 internal class Program
 {
@@ -123,6 +129,15 @@ internal class Program
                 Environment.GetEnvironmentVariable("OIDC_PASSWORD")!
             )
         );
+        
+        // ALTERNATIVE: Register StellaNowSdk for operations with no authentication, such as local NanoMQ broker.
+        // services.AddStellaNowSdkWithMqttAndNoAuth(
+        //     new StellaNowLocalEnvironmentConfig(),
+        //     new StellaNowConfig(
+        //         Environment.GetEnvironmentVariable("ORGANIZATION_ID")!,
+        //         Environment.GetEnvironmentVariable("PROJECT_ID")!
+        //     )
+        // );
 
         // Build the service provider from the service collection.
         _serviceProvider = services.BuildServiceProvider();

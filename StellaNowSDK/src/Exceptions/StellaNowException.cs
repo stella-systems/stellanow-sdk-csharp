@@ -18,8 +18,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Authentication;
+namespace StellaNowSDK.Exceptions;
 
-public abstract record StellaNowAuthenticationResult;
+/// <summary>
+/// Base exception class for all StellaNow SDK-related exceptions.
+/// </summary>
+public class StellaNowException : Exception
+{
+    public StellaNowException(string message) 
+        : base(message)
+    {
+    }
 
-public record StellaNowAuthTokenResult(string AccessToken) : StellaNowAuthenticationResult;
+    public StellaNowException(string message, Exception innerException) 
+        : base(message, innerException)
+    {
+    }
+}

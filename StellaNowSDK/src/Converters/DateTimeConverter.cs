@@ -23,16 +23,34 @@ using System.Globalization;
 
 namespace StellaNowSDK.Converters;
 
-
+/// <summary>
+/// A JSON converter for <see cref="DateTime"/>, using the format "yyyy-MM-ddTHH:mm:ss.ffffffZ" (UTC).
+/// </summary>
 public class DateTimeConverter : JsonConverter<DateTime>
 {
     private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
 
+    /// <summary>
+    /// Serializes a <see cref="DateTime"/> as a string in UTC using the format "yyyy-MM-ddTHH:mm:ss.ffffffZ".
+    /// </summary>
+    /// <param name="writer">The <see cref="JsonWriter"/> to write to.</param>
+    /// <param name="value">The <see cref="DateTime"/> value to serialize.</param>
+    /// <param name="serializer">The calling serializer instance.</param>
     public override void WriteJson(JsonWriter writer, DateTime value, JsonSerializer serializer)
     {
         writer.WriteValue(value.ToUniversalTime().ToString(DateTimeFormat, CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// Deserializes a string in "yyyy-MM-ddTHH:mm:ss.ffffffZ" format (UTC) into a <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="reader">The <see cref="JsonReader"/> providing the JSON data.</param>
+    /// <param name="objectType">The type of object to deserialize to (ignored).</param>
+    /// <param name="existingValue">The existing <see cref="DateTime"/> value, if any (ignored).</param>
+    /// <param name="hasExistingValue">Indicates if there is an existing value (ignored).</param>
+    /// <param name="serializer">The calling serializer instance.</param>
+    /// <returns>A <see cref="DateTime"/> in UTC.</returns>
+    /// <exception cref="FormatException">Thrown if the string does not match the specified format.</exception>
     public override DateTime ReadJson(JsonReader reader, Type objectType, DateTime existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
         var s = (string)reader.Value!;
