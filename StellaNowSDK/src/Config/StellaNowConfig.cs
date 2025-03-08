@@ -20,4 +20,13 @@
 
 namespace StellaNowSDK.Config;
 
+/// <summary>
+/// Configuration record specifying the organization and project identifiers for StellaNow.
+/// </summary>
+/// <param name="organizationId">
+/// Unique identifier (UUID) for the organization in StellaNow.
+/// </param>
+/// <param name="projectId">
+/// Unique identifier (UUID) for the project within the organization.
+/// </param>
 public record StellaNowConfig(string organizationId, string projectId);
