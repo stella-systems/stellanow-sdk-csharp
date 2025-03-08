@@ -20,7 +20,14 @@
 
 namespace StellaNowSDK.Events;
 
+/// <summary>
+/// Provides data for the event that occurs when a StellaNow sink successfully connects to a broker or service.
+/// </summary>
+/// <remarks>
+/// Currently, this class does not contain any properties or fields, but it can be extended to carry
+/// connection-specific data if needed (e.g., timestamps, broker information).
+/// </remarks>
 public class StellaNowConnectedEventArgs : EventArgs
 {
-    
+    // This class intentionally left empty.
 }
