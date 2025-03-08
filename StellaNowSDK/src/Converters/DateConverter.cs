@@ -23,16 +23,34 @@ using System.Globalization;
 
 namespace StellaNowSDK.Converters;
 
-
+/// <summary>
+/// A JSON converter for <see cref="DateOnly"/>, using the format "yyyy-MM-dd".
+/// </summary>
 public class DateConverter : JsonConverter<DateOnly>
 {
     private const string DateFormat = "yyyy-MM-dd";
 
+    /// <summary>
+    /// Serializes a <see cref="DateOnly"/> as a string in "yyyy-MM-dd" format.
+    /// </summary>
+    /// <param name="writer">The <see cref="JsonWriter"/> to write to.</param>
+    /// <param name="value">The <see cref="DateOnly"/> value to serialize.</param>
+    /// <param name="serializer">The calling serializer instance.</param>
     public override void WriteJson(JsonWriter writer, DateOnly value, JsonSerializer serializer)
     {
         writer.WriteValue(value.ToString(DateFormat, CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// Deserializes a string in "yyyy-MM-dd" format into a <see cref="DateOnly"/>.
+    /// </summary>
+    /// <param name="reader">The <see cref="JsonReader"/> providing the JSON data.</param>
+    /// <param name="objectType">The type of object to deserialize to (ignored).</param>
+    /// <param name="existingValue">The existing <see cref="DateOnly"/> value, if any (ignored).</param>
+    /// <param name="hasExistingValue">Indicates if there is an existing value (ignored).</param>
+    /// <param name="serializer">The calling serializer instance.</param>
+    /// <returns>A <see cref="DateOnly"/> parsed from the input string.</returns>
+    /// <exception cref="FormatException">Thrown if the string does not match "yyyy-MM-dd".</exception>
     public override DateOnly ReadJson(JsonReader reader, Type objectType, DateOnly existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
         var s = (string)reader.Value!;

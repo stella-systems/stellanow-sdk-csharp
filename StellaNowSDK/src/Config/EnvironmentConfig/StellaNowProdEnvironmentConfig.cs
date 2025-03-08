@@ -18,17 +18,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Config.EnvirnmentConfig;
+namespace StellaNowSDK.Config.EnvironmentConfig;
 
-public abstract class StellaNowEnvironmentConfig
+/// <summary>
+/// Production environment configuration pointing to production StellaNow endpoints.
+/// </summary>
+/// <remarks>
+/// Uses a production API base URL and a WebSocket-secured MQTT broker URL on the production environment.
+/// </remarks>
+public class StellaNowProdEnvironmentConfig : StellaNowEnvironmentConfig
 {
-    protected abstract string ApiBaseUrl { get; }
-
-    public string Authority => BuildApiUrl("auth");
-    public abstract string BrokerUrl { get; }
-
-    protected string BuildApiUrl(string path)
-    {
-        return $"{ApiBaseUrl}/{path}";
-    }
+    /// <inheritdoc/>
+    protected override string ApiBaseUrl => "https://api.prod.stella.cloud";
+    
+    /// <inheritdoc/>
+    public override string BrokerUrl => "wss://ingestor.prod.stella.cloud:8083/mqtt";
 }

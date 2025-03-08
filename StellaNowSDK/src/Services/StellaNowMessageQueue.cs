@@ -19,113 +19,245 @@
 // IN THE SOFTWARE.
 
 using Microsoft.Extensions.Logging;
+using StellaNowSDK.Exceptions.Sinks.Mqtt;
 using StellaNowSDK.Sinks;
 using StellaNowSDK.Messages;
 using StellaNowSDK.Queue;
 
 namespace StellaNowSDK.Services;
 
-public sealed class StellaNowMessageQueue: IStellaNowMessageQueue
+/// <summary>
+/// A concrete implementation of <see cref="IStellaNowMessageQueue"/> that uses
+/// an <see cref="IMessageQueueStrategy"/> (e.g., FIFO/LIFO) to store messages 
+/// and an <see cref="IStellaNowSink"/> to dispatch them.
+/// </summary>
+/// <remarks>
+/// This class manages a background task that continuously attempts to dequeue 
+/// and send messages, delaying if no messages are available or if the sink is disconnected.
+/// </remarks>
+public sealed class StellaNowMessageQueue : IStellaNowMessageQueue
 {
-    private readonly ILogger<StellaNowMessageQueue>? _logger;
-    
+    private readonly ILogger<StellaNowMessageQueue> _logger; // Required logger
     private readonly IMessageQueueStrategy _messageQueueStrategy;
     private readonly IStellaNowSink _sink;
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+    private readonly object _lockObject = new(); // For thread safety
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Task? _queueProcessingTask;
-    
     private StellaNowEventWrapper? _currentMessage;
+    private bool _disposed;
 
+    // Retry delay configuration
+    private const int BaseRetryDelayMs = 500;
+    private const int MaxRetryDelayMs = 5000;
+    private int _retryCount = 0;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StellaNowMessageQueue"/> class.
+    /// </summary>
+    /// <param name="logger">Logger for diagnostic messages and errors. Must not be null.</param>
+    /// <param name="messageQueueStrategy">
+    /// The strategy used to enqueue and dequeue messages (FIFO, LIFO, etc.). Must not be null.
+    /// </param>
+    /// <param name="sink">The sink responsible for sending messages to the broker or service. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown if any parameter is null.</exception>
     public StellaNowMessageQueue(
-        ILogger<StellaNowMessageQueue>? logger,
-        IMessageQueueStrategy messageQueueStrategy, IStellaNowSink sink)
+        ILogger<StellaNowMessageQueue> logger,
+        IMessageQueueStrategy messageQueueStrategy,
+        IStellaNowSink sink)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(messageQueueStrategy);
+        ArgumentNullException.ThrowIfNull(sink);
+
         _logger = logger;
         _messageQueueStrategy = messageQueueStrategy;
         _sink = sink;
     }
 
-    public void StartProcessing()
+    /// <inheritdoc />
+    public async Task StartProcessingAsync()
     {
-        if (_queueProcessingTask == null || _queueProcessingTask.IsCompleted)
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(StellaNowMessageQueue));
+
+        lock (_lockObject)
         {
-            _queueProcessingTask = Task.Run(ProcessMessageQueueAsync);
+            if (_queueProcessingTask != null && !_queueProcessingTask.IsCompleted)
+                return; // Already running, no-op
+
+            _queueProcessingTask = Task.Run(ProcessMessageQueueAsync, _cancellationTokenSource.Token);
+        }
+
+        _logger.LogDebug("Started processing message queue");
+    }
+
+    /// <inheritdoc />
+    public async Task StopProcessingAsync()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(StellaNowMessageQueue));
+
+        lock (_lockObject)
+        {
+            if (_queueProcessingTask == null || _queueProcessingTask.IsCompleted)
+                return; // Not running, no-op
+
+            _cancellationTokenSource.Cancel();
+        }
+
+        try
+        {
+            if (_queueProcessingTask != null)
+                await _queueProcessingTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Queue processing task cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while stopping queue processing");
+            throw;
+        }
+        finally
+        {
+            _logger.LogDebug("Stopped processing message queue");
         }
     }
-    
-    public void StopProcessing()
-    {
-        _cancellationTokenSource?.Cancel();
-    }
 
+    /// <inheritdoc />
     public void EnqueueMessage(StellaNowEventWrapper message)
     {
-        _logger?.LogDebug("Queueing Message: {Message}", message.Value.Metadata.MessageId);
-        _messageQueueStrategy.Enqueue(message);
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(StellaNowMessageQueue));
+
+        ArgumentNullException.ThrowIfNull(message);
+
+        lock (_lockObject)
+        {
+            _logger.LogDebug("Queueing message with ID: {MessageId}", message.Value.Metadata.MessageId);
+            _messageQueueStrategy.Enqueue(message);
+        }
     }
 
+    /// <inheritdoc />
     public bool IsQueueEmpty()
     {
-        return _messageQueueStrategy.IsEmpty();
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(StellaNowMessageQueue));
+
+        lock (_lockObject)
+        {
+            return _messageQueueStrategy.IsEmpty();
+        }
     }
 
+    /// <inheritdoc />
     public int GetMessageCountOnQueue()
     {
-        return _messageQueueStrategy.GetMessageCount();
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(StellaNowMessageQueue));
+
+        lock (_lockObject)
+        {
+            return _messageQueueStrategy.GetMessageCount();
+        }
     }
 
     private async Task ProcessMessageQueueAsync()
     {
-        _logger?.LogDebug("Start Processing Message Queue");
-        
+        _logger.LogDebug("Started processing message queue");
+
         while (!_cancellationTokenSource.IsCancellationRequested)
         {
             try
             {
-                if (_currentMessage == null && 
-                    _sink.IsConnected && 
-                    _messageQueueStrategy.TryDequeue(out var message))
+                StellaNowEventWrapper? message = null;
+                lock (_lockObject)
                 {
-                    _currentMessage = message;
+                    // Dequeue a new message only if no current message and sink is connected
+                    if (_currentMessage == null && _sink.IsConnected && _messageQueueStrategy.TryDequeue(out message))
+                    {
+                        _currentMessage = message;
+                    }
                 }
-                
-                // Try to send the current message
+
                 if (_currentMessage != null)
                 {
-                    _logger?.LogInformation(
-                        "Attempting to send message: {Message}", 
-                        _currentMessage.Value.Metadata.MessageId);
-                    
-                    await _sink.SendMessageAsync(_currentMessage);
-                    _currentMessage = null;  // Clear the current message after it was successfully sent
+                    var messageToSend = _currentMessage; // Capture for logging
+                    _logger.LogInformation("Attempting to send message with ID: {MessageId}", messageToSend.Value.Metadata.MessageId);
+
+                    if (_sink.IsConnected) // Check connection before sending
+                    {
+                        try
+                        {
+                            await _sink.SendMessageAsync(messageToSend);
+                            lock (_lockObject)
+                            {
+                                _currentMessage = null; // Clear only after successful send
+                                _retryCount = 0; // Reset retry count on success
+                            }
+                            _logger.LogInformation("Message with ID {MessageId} sent successfully", messageToSend.Value.Metadata.MessageId);
+                        }
+                        catch (MqttConnectionException ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to send message with ID {MessageId} due to connection error, will retry on next iteration", messageToSend.Value.Metadata.MessageId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Unexpected error sending message with ID {MessageId}, will retry on next iteration", messageToSend.Value.Metadata.MessageId);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Sink is not connected, delaying retry for message with ID {MessageId}", messageToSend.Value.Metadata.MessageId);
+                    }
+
+                    // Apply exponential backoff if not connected or on failure
+                    if (!_sink.IsConnected || _retryCount > 0)
+                    {
+                        _retryCount++;
+                        var delayMs = Math.Min(BaseRetryDelayMs * (1 << (_retryCount - 1)), MaxRetryDelayMs);
+                        await Task.Delay(delayMs, _cancellationTokenSource.Token).ConfigureAwait(false);
+                    }
                 }
                 else
                 {
-                    // If the client is not connected or there's no message to process, delay to avoid tight looping
-                    await Task.Delay(500);
+                    await Task.Delay(500, _cancellationTokenSource.Token).ConfigureAwait(false); // Avoid tight looping when no messages
                 }
             }
             catch (OperationCanceledException)
             {
-                _logger?.LogInformation("Thread Cancelled");
-                // The CancellationTokenSource was cancelled, which means we should stop processing the queue
+                _logger.LogInformation("Queue processing cancelled");
                 break;
             }
-            catch
+            catch (Exception ex)
             {
-                _logger?.LogError("Unhandled Exception");
-                // Handle any other exceptions that might occur during message processing
-                await Task.Delay(500);
+                _logger.LogError(ex, "Unhandled exception in message queue processing");
+                await Task.Delay(500, _cancellationTokenSource.Token).ConfigureAwait(false); // Delay to prevent tight looping on error
             }
         }
-        
-        _logger?.LogDebug("Ended Processing Message Queue");
+
+        _logger.LogDebug("Ended processing message queue");
     }
-    
+
+    /// <inheritdoc />
     public void Dispose()
     {
-        _logger?.LogDebug("Disposing");
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
+        if (_disposed)
+            return;
+
+        _logger.LogDebug("Disposing");
+        _cancellationTokenSource.Cancel();
+        if (_queueProcessingTask != null && !_queueProcessingTask.IsCompleted)
+        {
+            _queueProcessingTask.GetAwaiter().GetResult(); // Synchronous wait
+        }
+        _cancellationTokenSource.Dispose();
+        lock (_lockObject)
+        {
+            _currentMessage = null; // Clear on dispose
+        }
+        _disposed = true;
     }
 }

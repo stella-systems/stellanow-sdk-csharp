@@ -22,4 +22,11 @@ using StellaNowSDK.Messages;
 
 namespace StellaNowSDK.Types;
 
+/// <summary>
+/// Represents a callback method invoked after a StellaNow event has been successfully sent.
+/// </summary>
+/// <param name="eventWrapper">
+/// The <see cref="StellaNowEventWrapper"/> that was dispatched to the broker, 
+/// containing the message and its metadata.
+/// </param>
 public delegate void OnMessageSent(StellaNowEventWrapper eventWrapper);

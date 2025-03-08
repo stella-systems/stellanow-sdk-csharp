@@ -18,33 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-using MQTTnet.Client;
-using StellaNowSDK.Config;
-using StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Exceptions;
 
-namespace StellaNowSDK.Sinks.Mqtt.ConnectionStrategy;
+namespace StellaNowSDK.Exceptions.Oidc;
 
-public class UserPassAuthMqttConnectionStrategy : IMqttConnectionStrategy
+/// <summary>
+/// Thrown when the OIDC discovery document cannot be retrieved from the provider.
+/// </summary>
+public class DiscoveryDocumentRetrievalException : StellaNowException
 {
-    private readonly StellaNowEnvironmentConfig _envConfig;
-    private readonly UserPassAuthCredentials _credentials;
-    
-    public UserPassAuthMqttConnectionStrategy(
-        UserPassAuthCredentials credentials,
-        StellaNowEnvironmentConfig envConfig)
+    public string DiscoveryDocumentUrl { get; }
+
+    public DiscoveryDocumentRetrievalException(string message, string discoveryDocumentUrl) 
+        : base(message)
     {
-        _envConfig = envConfig;
-        _credentials = credentials;
+        DiscoveryDocumentUrl = discoveryDocumentUrl;
     }
 
-    public async void ConnectAsync(IMqttClient client, string clientId)
+    public DiscoveryDocumentRetrievalException(string message, string discoveryDocumentUrl, Exception innerException) 
+        : base(message, innerException)
     {
-        var options = new MqttClientOptionsBuilder()
-            .WithClientId(clientId)
-            .WithConnectionUri(_envConfig.BrokerUrl)
-            .WithCredentials(_credentials.username, _credentials.password)
-            .Build();
-
-        await client.ConnectAsync(options);
+        DiscoveryDocumentUrl = discoveryDocumentUrl;
     }
 }

@@ -20,6 +20,16 @@
 
 namespace StellaNowSDK.Messages;
 
+/// <summary>
+/// Holds metadata for a message, including a unique message ID, timestamp, and references
+/// to the event type and associated entities.
+/// </summary>
+/// <param name="MessageId">A unique identifier (UUID/string) for the message.</param>
+/// <param name="MessageOriginDateUTC">The timestamp (in UTC) when the message was created.</param>
+/// <param name="EventTypeDefinitionId">The StellaNow event type definition ID (e.g., "user_login").</param>
+/// <param name="EntityTypeIds">
+/// A collection of entity references, allowing the message to be linked to one or more entities.
+/// </param>
 public record Metadata(
     string MessageId,
     DateTime MessageOriginDateUTC,
