@@ -20,4 +20,16 @@
 
 namespace StellaNowSDK.Messages;
 
+/// <summary>
+/// Identifies an event in StellaNow by organization, project, and entity.
+/// </summary>
+/// <remarks>
+/// This record is used to group events logically under a specific organization,
+/// project, and entity in the StellaNow platform.
+/// </remarks>
+/// <param name="OrganizationId">Unique identifier (UUID/string) of the organization.</param>
+/// <param name="ProjectId">Unique identifier (UUID/string) of the project within the organization.</param>
+/// <param name="EntityId">
+/// The specific entity identifier to which this event is associated (e.g., a device or user).
+/// </param>
 public record EventKey(string OrganizationId, string ProjectId, string EntityId);

@@ -24,18 +24,91 @@ using StellaNowSDK.Types;
 
 namespace StellaNowSDK.Services;
 
-public interface IStellaNowSdk
+/// <summary>
+/// Primary interface for interacting with StellaNow services. Handles message sending,
+/// connection lifecycle, and queue management.
+/// </summary>
+/// <remarks>
+/// An implementation of this interface is typically responsible for connecting to a sink broker
+/// and queueing messages. Implementations should be thread-safe for concurrent access.
+/// </remarks>
+public interface IStellaNowSdk : IDisposable
 {
+    /// <summary>
+    /// Gets a value indicating whether the SDK is currently connected to the broker.
+    /// </summary>
     bool IsConnected { get; }
 
+    /// <summary>
+    /// Occurs when the SDK (through its underlying sink) successfully connects to the broker.
+    /// May be null if no handlers are subscribed.
+    /// </summary>
     event Func<StellaNowConnectedEventArgs, Task>? ConnectedAsync;
+
+    /// <summary>
+    /// Occurs when the SDK (through its underlying sink) disconnects from the broker.
+    /// May be null if no handlers are subscribed.
+    /// </summary>
     event Func<StellaNowDisconnectedEventArgs, Task>? DisconnectedAsync;
 
+    /// <summary>
+    /// Starts the SDK by initiating the message queue and establishing a connection to the broker.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the SDK is already started or has been disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the SDK has been disposed.</exception>
     Task StartAsync();
+
+    /// <summary>
+    /// Stops the SDK, optionally waiting for the queue to empty before disconnecting.
+    /// </summary>
+    /// <param name="waitForEmptyQueue">
+    /// If <c>true</c>, waits until all queued messages are dispatched before stopping.
+    /// </param>
+    /// <param name="timeout">
+    /// The maximum time to wait for the queue to empty. Defaults to 1 minute if not specified.
+    /// </param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous stop operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the SDK is not started.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the SDK has been disposed.</exception>
     Task StopAsync(bool waitForEmptyQueue = false, TimeSpan? timeout = null);
+
+    /// <summary>
+    /// Sends a <see cref="StellaNowMessageBase"/> by wrapping it into a <see cref="StellaNowMessageWrapper"/>
+    /// and enqueueing it for dispatch.
+    /// </summary>
+    /// <param name="message">The message to send. Must not be null.</param>
+    /// <param name="callback">
+    /// An optional callback invoked once the message has been dispatched to the broker.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="message"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the SDK is not started or the message lacks a valid entity ID.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the SDK has been disposed.</exception>
     void SendMessage(StellaNowMessageBase message, OnMessageSent? callback = null);
+
+    /// <summary>
+    /// Sends a <see cref="StellaNowMessageWrapper"/> directly by enqueueing it for dispatch.
+    /// </summary>
+    /// <param name="message">The wrapped message containing metadata and JSON payload. Must not be null.</param>
+    /// <param name="callback">
+    /// An optional callback invoked once the message has been dispatched to the broker.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="message"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the SDK is not started or the message lacks a valid entity ID.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the SDK has been disposed.</exception>
     void SendMessage(StellaNowMessageWrapper message, OnMessageSent? callback = null);
 
+    /// <summary>
+    /// Determines whether there are any messages pending dispatch in the queue.
+    /// </summary>
+    /// <returns><c>true</c> if the queue has messages waiting; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the SDK has been disposed.</exception>
     bool HasMessagesPendingForDispatch();
+
+    /// <summary>
+    /// Gets the number of messages currently pending dispatch in the queue.
+    /// </summary>
+    /// <returns>The count of messages in the queue.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the SDK has been disposed.</exception>
     int MessagesPendingForDispatchCount();
 }

@@ -18,10 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Exceptions;
 
-public class StellaNowProdEnvironmentConfig : StellaNowEnvironmentConfig
+namespace StellaNowSDK.Exceptions.Sinks.Mqtt;
+
+/// <summary>
+/// Thrown when the SDK fails to connect to an MQTT broker.
+/// </summary>
+public class MqttConnectionException : StellaNowException
 {
-    protected override string ApiBaseUrl => "https://api.prod.stella.cloud";
-    public override string BrokerUrl => "wss://ingestor.prod.stella.cloud:8083/mqtt";
+    public string BrokerUrl { get; }
+
+    public MqttConnectionException(string message, string brokerUrl) 
+        : base(message)
+    {
+        BrokerUrl = brokerUrl;
+    }
+
+    public MqttConnectionException(string message, string brokerUrl, Exception innerException) 
+        : base(message, innerException)
+    {
+        BrokerUrl = brokerUrl;
+    }
 }

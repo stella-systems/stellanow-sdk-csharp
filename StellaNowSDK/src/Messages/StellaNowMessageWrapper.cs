@@ -23,11 +23,33 @@ using StellaNowSDK.Converters;
 
 namespace StellaNowSDK.Messages;
 
+/// <summary>
+/// Wraps a <see cref="StellaNowMessageBase"/> by storing its serialized JSON payload
+/// and generating metadata (e.g., message ID, timestamp).
+/// </summary>
+/// <remarks>
+/// The static <see cref="SerializationSettings"/> ensures custom converters (e.g., for DateTime, Decimal)
+/// are applied during serialization.
+/// </remarks>
 public class StellaNowMessageWrapper
 {
+    /// <summary>
+    /// Gets the metadata for this message, including a unique ID, timestamp, event type, and entity references.
+    /// </summary>
     public Metadata Metadata { get; }
+    
+    /// <summary>
+    /// Gets the JSON-serialized payload of the original message.
+    /// </summary>
+    /// <remarks>
+    /// This payload is generated using custom serialization settings (e.g., date formats).
+    /// </remarks>
     public string Payload { get; private set; }
     
+    /// <summary>
+    /// A static JSON serialization settings object containing custom converters for date, time,
+    /// boolean, and decimal types.
+    /// </summary>
     private static readonly JsonSerializerSettings SerializationSettings = new JsonSerializerSettings
     {
         Converters = new List<JsonConverter>
@@ -39,6 +61,11 @@ public class StellaNowMessageWrapper
         }
     };
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StellaNowMessageWrapper"/> class by
+    /// serializing a <see cref="StellaNowMessageBase"/> into JSON and creating metadata.
+    /// </summary>
+    /// <param name="stellaNowMessage">The message instance to serialize.</param>
     public StellaNowMessageWrapper(StellaNowMessageBase stellaNowMessage)
         : this(
             stellaNowMessage.EventTypeDefinitionId, 
@@ -48,6 +75,12 @@ public class StellaNowMessageWrapper
     {
     }
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StellaNowMessageWrapper"/> class with explicit parameters.
+    /// </summary>
+    /// <param name="eventTypeDefinitionId">The event type definition ID from the message.</param>
+    /// <param name="entityTypeIds">A list of entity references from the message.</param>
+    /// <param name="messageJson">A JSON string representing the message payload.</param>
     public StellaNowMessageWrapper(string eventTypeDefinitionId, List<EntityType> entityTypeIds, string messageJson)
     {
         Metadata = new Metadata(

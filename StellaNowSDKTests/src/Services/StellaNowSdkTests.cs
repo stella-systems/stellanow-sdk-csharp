@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using StellaNowSDK.Config;
@@ -26,6 +27,8 @@ using StellaNowSDK.Services;
 using StellaNowSDK.Types;
 using StellaNowSDK.Messages;
 using StellaNowSdkTests.TestUtilities;
+using System;
+using System.Threading.Tasks;
 
 namespace StellaNowSdkTests.Services
 {
@@ -34,123 +37,206 @@ namespace StellaNowSdkTests.Services
     {
         private Mock<IStellaNowMessageQueue>? _mockMessageQueue;
         private Mock<IStellaNowSink>? _mockConnectionStrategy;
+        private Mock<ILogger<StellaNowSdk>>? _mockLogger;
         private StellaNowSdk? _sdk;
 
         [TestInitialize]
         public void TestInitialize()
         {
+            // Initialize a mock for the ILogger<StellaNowSdk>
+            _mockLogger = new Mock<ILogger<StellaNowSdk>>();
+
             // Initialize a mock for the IStellaNowMessageQueue
             _mockMessageQueue = new Mock<IStellaNowMessageQueue>();
 
-            // Initialize a mock for the IStellaNowConnectionStrategy
+            // Initialize a mock for the IStellaNowSink
             _mockConnectionStrategy = new Mock<IStellaNowSink>();
+            _mockConnectionStrategy.Setup(s => s.IsConnected).Returns(true); // Default to connected
 
             // Create an instance of StellaNowSdk with the mocked dependencies
             _sdk = new StellaNowSdk(
-                null, // pass null for the logger for simplicity
-                _mockConnectionStrategy.Object, 
-                _mockMessageQueue.Object, 
-                new StellaNowConfig("","") // use default configuration
+                _mockLogger.Object,
+                _mockConnectionStrategy.Object,
+                _mockMessageQueue.Object,
+                new StellaNowConfig("", "") // Use default configuration
             );
         }
 
-        [TestMethod]
-        public void Test_HasMessagesPendingForDispatch()
+        [TestCleanup]
+        public void TestCleanup()
         {
-            // Setup the mock to return true when IsQueueEmpty is called
-            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+            _sdk?.Dispose();
+            _sdk = null;
+            _mockMessageQueue = null;
+            _mockConnectionStrategy = null;
+            _mockLogger = null;
+        }
 
-            // Call the method under test
-            var result = _sdk.HasMessagesPendingForDispatch();
+        [TestMethod]
+        public void Test_HasMessagesPendingForDispatch_WhenQueueNotEmpty_ReturnsTrue()
+        {
+            // Arrange
+            _mockMessageQueue!.Setup(mq => mq.IsQueueEmpty()).Returns(false);
 
-            // Assert that the result is true
+            // Act
+            var result = _sdk!.HasMessagesPendingForDispatch();
+
+            // Assert
             Assert.IsTrue(result);
         }
 
         [TestMethod]
-        public void Test_MessagesPendingForDispatchCount()
+        public void Test_HasMessagesPendingForDispatch_WhenQueueEmpty_ReturnsFalse()
         {
-            // Setup the mock to return 5 when GetMessageCountOnQueue is called
-            _mockMessageQueue.Setup(mq => mq.GetMessageCountOnQueue()).Returns(5);
+            // Arrange
+            _mockMessageQueue!.Setup(mq => mq.IsQueueEmpty()).Returns(true);
 
-            // Call the method under test
-            var result = _sdk.MessagesPendingForDispatchCount();
+            // Act
+            var result = _sdk!.HasMessagesPendingForDispatch();
 
-            // Assert that the result is 5
+            // Assert
+            Assert.IsFalse(result);
+        }
+
+        [TestMethod]
+        public void Test_MessagesPendingForDispatchCount_ReturnsCorrectCount()
+        {
+            // Arrange
+            _mockMessageQueue!.Setup(mq => mq.GetMessageCountOnQueue()).Returns(5);
+
+            // Act
+            var result = _sdk!.MessagesPendingForDispatchCount();
+
+            // Assert
             Assert.AreEqual(5, result);
         }
-        
+
         [TestMethod]
         public async Task SendMessage_WhenMessageIsSent_CallbackIsCalled()
         {
             // Arrange
             var messageSent = false;
             var message = new UserUpdateMessage(
-                Guid.NewGuid().ToString(),"John", "Doe", "1970-01-01", "john.doe@example.com"
+                Guid.NewGuid().ToString(), "John", "Doe", "1970-01-01", "john.doe@example.com"
             );
             var callback = new OnMessageSent((_) => messageSent = true);
-    
-            // Configure the mock MessageQueue to simulate successful message sending
-            _mockMessageQueue.Setup(mq => mq.EnqueueMessage(It.IsAny<StellaNowEventWrapper>()))
+
+            _mockMessageQueue!.Setup(mq => mq.EnqueueMessage(It.IsAny<StellaNowEventWrapper>()))
                 .Callback<StellaNowEventWrapper>(wrapper => wrapper.Callback?.Invoke(wrapper));
-        
+
+            // Simulate SDK being started
+            _mockConnectionStrategy!.Setup(cs => cs.StartAsync()).Returns(Task.CompletedTask);
+            _mockMessageQueue.Setup(mq => mq.StartProcessingAsync()).Returns(Task.CompletedTask);
+            await _sdk!.StartAsync();
+
             // Act
             _sdk.SendMessage(message, callback);
 
             // Assert
             Assert.IsTrue(messageSent);
         }
-        
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void SendMessage_WhenNotStarted_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var message = new UserUpdateMessage(
+                Guid.NewGuid().ToString(), "John", "Doe", "1970-01-01", "john.doe@example.com"
+            );
+
+            // Act
+            _sdk!.SendMessage(message);
+        }
+
         [TestMethod]
         public async Task Test_StopAsync_WaitsUntilQueueIsEmpty()
         {
             // Arrange
             var queueResults = new Queue<bool>();
-            queueResults.Enqueue(false);  // Has pending messages
-            queueResults.Enqueue(false);  // Has pending messages
-            queueResults.Enqueue(true);   // No pending messages
+            queueResults.Enqueue(false); // Has pending messages
+            queueResults.Enqueue(false); // Has pending messages
+            queueResults.Enqueue(true);  // No pending messages
 
-            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty())
-                .Returns(() => queueResults.Count > 0 ? queueResults.Dequeue() : true);  // If the queue is exhausted, return true (no messages pending)
+            _mockMessageQueue!.Setup(mq => mq.IsQueueEmpty())
+                .Returns(() => queueResults.Count > 0 ? queueResults.Dequeue() : true);
+            _mockMessageQueue.Setup(mq => mq.StopProcessingAsync()).Returns(Task.CompletedTask);
+            _mockConnectionStrategy!.Setup(cs => cs.StopAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _sdk.StopAsync(waitForEmptyQueue: true);  // Set a short timeout for the test
+            await _sdk!.StopAsync(waitForEmptyQueue: true, TimeSpan.FromSeconds(1));
 
             // Assert
-            _mockMessageQueue.Verify(mq => mq.StopProcessing(), Times.Once());
+            _mockMessageQueue.Verify(mq => mq.StopProcessingAsync(), Times.Once());
             _mockConnectionStrategy.Verify(cs => cs.StopAsync(), Times.Once());
         }
-        
+
         [TestMethod]
         public async Task Test_StopAsync_WaitsUntilQueueIsEmptyTimeout()
         {
-            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+            // Arrange
+            _mockMessageQueue!.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+            _mockMessageQueue.Setup(mq => mq.StopProcessingAsync()).Returns(Task.CompletedTask);
+            _mockConnectionStrategy!.Setup(cs => cs.StopAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _sdk.StopAsync(waitForEmptyQueue: true, TimeSpan.FromSeconds(1));  // Set a short timeout for the test
+            await _sdk!.StopAsync(waitForEmptyQueue: true, TimeSpan.FromSeconds(1));
 
             // Assert
-            _mockMessageQueue.Verify(mq => mq.StopProcessing(), Times.Once());
+            _mockMessageQueue.Verify(mq => mq.StopProcessingAsync(), Times.Once());
             _mockConnectionStrategy.Verify(cs => cs.StopAsync(), Times.Once());
+            _mockLogger!.Verify(
+                logger => logger.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Timeout exceeded while waiting for the message queue to empty")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once());
         }
-        
+
         [TestMethod]
-        public async Task Test_StopAsync_DoNotWaitUntilQueueIsEmpty()
+        public async Task Test_StopAsync_DoesNotWaitUntilQueueIsEmpty()
         {
             // Arrange
-            // Set up the mock to indicate that the queue is never empty.
-            _mockMessageQueue.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+            _mockMessageQueue!.Setup(mq => mq.IsQueueEmpty()).Returns(false);
+            _mockMessageQueue.Setup(mq => mq.StopProcessingAsync()).Returns(Task.CompletedTask);
+            _mockConnectionStrategy!.Setup(cs => cs.StopAsync()).Returns(Task.CompletedTask);
 
             // Act
-            // Call StopAsync with waitForEmptyQueue set to default false.
-            await _sdk.StopAsync();
+            await _sdk!.StopAsync(waitForEmptyQueue: false);
 
             // Assert
-            // Verify that StopProcessing was called once.
-            _mockMessageQueue.Verify(mq => mq.StopProcessing(), Times.Once);
+            _mockMessageQueue.Verify(mq => mq.StopProcessingAsync(), Times.Once());
+            _mockMessageQueue.Verify(mq => mq.IsQueueEmpty(), Times.Never());
+            _mockConnectionStrategy.Verify(cs => cs.StopAsync(), Times.Once());
+        }
 
-            // Verify that IsQueueEmpty was never called.
-            _mockMessageQueue.Verify(mq => mq.IsQueueEmpty(), Times.Never);
+        [TestMethod]
+        public async Task Test_StopAsync_WhenAlreadyStopped_DoesNotThrow()
+        {
+            // Arrange
+            _mockMessageQueue!.Setup(mq => mq.StopProcessingAsync()).Returns(Task.CompletedTask);
+            _mockConnectionStrategy!.Setup(cs => cs.StopAsync()).Returns(Task.CompletedTask);
+
+            // Act
+            await _sdk!.StopAsync(); // First call to stop
+            await _sdk.StopAsync(); // Second call to stop
+
+            // Assert
+            _mockMessageQueue.Verify(mq => mq.StopProcessingAsync(), Times.Once());
+            _mockConnectionStrategy.Verify(cs => cs.StopAsync(), Times.Once());
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void Test_StopAsync_WhenDisposed_ThrowsObjectDisposedException()
+        {
+            // Arrange
+            _sdk!.Dispose();
+
+            // Act
+            _sdk.StopAsync().GetAwaiter().GetResult();
         }
     }
 }

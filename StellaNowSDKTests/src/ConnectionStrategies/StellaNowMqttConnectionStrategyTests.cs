@@ -22,7 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StellaNowSDK.Config;
-using StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Config.EnvironmentConfig;
 using StellaNowSDK.Services;
 using StellaNowSdkTests.TestUtilities;
 

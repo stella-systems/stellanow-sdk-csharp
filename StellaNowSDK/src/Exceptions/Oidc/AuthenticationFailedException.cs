@@ -18,10 +18,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-namespace StellaNowSDK.Config.EnvirnmentConfig;
+using StellaNowSDK.Exceptions;
 
-public class StellaNowDevEnvironmentConfig : StellaNowEnvironmentConfig
+namespace StellaNowSDK.Exceptions.Oidc;
+
+/// <summary>
+/// Thrown when authentication with the OIDC provider fails.
+/// </summary>
+public class AuthenticationFailedException : StellaNowException
 {
-    protected override string ApiBaseUrl => "https://api.dev.stella.cloud";
-    public override string BrokerUrl => "wss://ingestor.dev.stella.cloud:8083/mqtt";
+    public string ErrorCode { get; }
+
+    public AuthenticationFailedException(string message, string errorCode) 
+        : base(message)
+    {
+        ErrorCode = errorCode;
+    }
+
+    public AuthenticationFailedException(string message, string errorCode, Exception innerException) 
+        : base(message, innerException)
+    {
+        ErrorCode = errorCode;
+    }
 }
