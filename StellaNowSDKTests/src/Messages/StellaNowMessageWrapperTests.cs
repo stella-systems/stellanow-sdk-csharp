@@ -42,7 +42,7 @@ public class StellaNowMessageWrapperTests
         public void SendMessage_DirectlyAsJson_Success()
         {
             // Arrange
-            var eventKey = new EventKey("some-organization-id", "some-project-id", "entity-id");
+            var eventKey = new EventKey("some-organization-id", "some-project-id", "entity-id", "entity-definition-id");
 
             var messagePayload = new
             {
@@ -68,7 +68,11 @@ public class StellaNowMessageWrapperTests
         public void SendMessage_UsingUserUpdateMessage_Success()
         {
             // Arrange
-            var eventKey = new EventKey("some-organization-id", "some-project-id", "entity-id");
+            var eventKey = new EventKey(
+                "some-organization-id", 
+                "some-project-id", 
+                "entity-id", 
+                "entity-definition-id");
 
             var userUpdateMessage = new UserUpdateMessage(
                 Guid.NewGuid().ToString(), // PunterId
