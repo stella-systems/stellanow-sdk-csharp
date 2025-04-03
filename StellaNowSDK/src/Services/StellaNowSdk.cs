@@ -162,17 +162,19 @@ public sealed class StellaNowSdk : IStellaNowSdk, IDisposable
 
             ArgumentNullException.ThrowIfNull(message);
 
-            var entityId = message.Metadata.EntityTypeIds?.FirstOrDefault()?.EntityId;
-            if (string.IsNullOrWhiteSpace(entityId))
+            var entity = message.Metadata.EntityTypeIds?.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(entity?.EntityId))
             {
                 throw new InvalidOperationException(
                     $"Trying to send message with missing entity ID. Message ID: {message.Metadata.MessageId}"
                 );
             }
+            
+            _logger.LogInformation($"Entity: {entity}");
 
             _messageQueue.EnqueueMessage(
                 new StellaNowEventWrapper(
-                    new EventKey(_config.organizationId, _config.projectId, entityId),
+                    new EventKey(_config.organizationId, _config.projectId, entity.EntityId, entity.EntityTypeDefinitionId),
                     message,
                     callback
                 )
