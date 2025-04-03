@@ -15,8 +15,4 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.2" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="src\Messages\" />
-    </ItemGroup>
-
 </Project>

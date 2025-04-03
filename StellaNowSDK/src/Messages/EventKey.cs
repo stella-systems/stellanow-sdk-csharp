@@ -32,4 +32,8 @@ namespace StellaNowSDK.Messages;
 /// <param name="EntityId">
 /// The specific entity identifier to which this event is associated (e.g., a device or user).
 /// </param>
-public record EventKey(string OrganizationId, string ProjectId, string EntityId);
+/// <param name="EntityTypeDefinitionId">
+/// The specific entity type definition representing the entity.
+/// </param>
+
+public record EventKey(string OrganizationId, string ProjectId, string EntityId, string EntityTypeDefinitionId);
