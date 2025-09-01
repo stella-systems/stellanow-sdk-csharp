@@ -48,18 +48,9 @@ public class StellaNowMessageWrapper
     
     /// <summary>
     /// A static JSON serialization settings object containing custom converters for date, time,
-    /// boolean, and decimal types.
+    /// boolean, and decimal types with camel case property names.
     /// </summary>
-    private static readonly JsonSerializerSettings SerializationSettings = new JsonSerializerSettings
-    {
-        Converters = new List<JsonConverter>
-        {
-            new DateTimeConverter(),
-            new DateConverter(),
-            new BooleanConverter(),
-            new DecimalConverter()
-        }
-    };
+    private static readonly JsonSerializerSettings SerializationSettings = StellaNowJsonSerializable.GetStellaNowSerializerSettings();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StellaNowMessageWrapper"/> class by

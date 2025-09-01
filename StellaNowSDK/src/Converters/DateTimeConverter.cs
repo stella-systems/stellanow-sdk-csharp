@@ -53,6 +53,11 @@ public class DateTimeConverter : JsonConverter<DateTime>
     /// <exception cref="FormatException">Thrown if the string does not match the specified format.</exception>
     public override DateTime ReadJson(JsonReader reader, Type objectType, DateTime existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
+        if (reader.Value is DateTime dateTime)
+        {
+            return dateTime.Kind == DateTimeKind.Utc ? dateTime : dateTime.ToUniversalTime();
+        }
+        
         var s = (string)reader.Value!;
         return DateTime.ParseExact(s, DateTimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
     }

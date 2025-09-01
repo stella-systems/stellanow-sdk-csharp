@@ -19,7 +19,6 @@
 // IN THE SOFTWARE.
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using StellaNowSDK.Types;
 
 namespace StellaNowSDK.Messages;
@@ -71,15 +70,11 @@ public sealed class StellaNowEventWrapper
     }
 
     /// <summary>
-    /// Serializes this instance to a JSON string using camel-case property names.
+    /// Serializes this instance to a JSON string using StellaNow's standard formatting.
     /// </summary>
-    /// <returns>A JSON string representing this event.</returns>
+    /// <returns>A JSON string representing this event with camel-case properties and consistent DateTime formatting.</returns>
     public override string ToString()
     {
-        var settings = new JsonSerializerSettings()
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
-        return JsonConvert.SerializeObject(this, settings);
+        return StellaNowJsonSerializable.Serialize(this);
     }
 }

@@ -34,4 +34,14 @@ namespace StellaNowSDK.Messages;
 public record StellaNowMessageBase(
     [property: Newtonsoft.Json.JsonIgnore] string EventTypeDefinitionId, 
     [property: Newtonsoft.Json.JsonIgnore] List<EntityType> EntityTypeIds
-    );
+    )
+{
+    /// <summary>
+    /// Serializes this message to a JSON string using StellaNow's standard formatting.
+    /// </summary>
+    /// <returns>A JSON string representing this message with camel-case properties and consistent DateTime formatting.</returns>
+    public override string ToString()
+    {
+        return StellaNowJsonSerializable.Serialize(this);
+    }
+}
